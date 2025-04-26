@@ -12,7 +12,8 @@ import {
   insertSubscriptionPlanSchema,
   insertMaterialGroupSchema,
   insertMaterialWarehouseSchema,
-  insertCustomTextFieldSchema
+  insertCustomTextFieldSchema,
+  insertUserSettingsSchema
 } from "@shared/schema";
 import { runOptimization } from "./optimization";
 
