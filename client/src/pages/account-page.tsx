@@ -64,19 +64,20 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 export default function AccountPage() {
   const { user, isLoading } = useAuth();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("profile");
   
   // Material Warehouse state and handlers
   const [materialDialogOpen, setMaterialDialogOpen] = useState(false);
-  const [editingMaterial, setEditingMaterial] = useState(null);
+  const [editingMaterial, setEditingMaterial] = useState<any>(null);
   
   // Custom Fields state and handlers
   const [fieldDialogOpen, setFieldDialogOpen] = useState(false);
-  const [editingField, setEditingField] = useState(null);
+  const [editingField, setEditingField] = useState<any>(null);
   
   // Material Groups state and handlers
   const [groupDialogOpen, setGroupDialogOpen] = useState(false);
-  const [editingGroup, setEditingGroup] = useState(null);
+  const [editingGroup, setEditingGroup] = useState<any>(null);
 
   if (isLoading) {
     return <div className="flex justify-center p-20">
@@ -346,7 +347,6 @@ export default function AccountPage() {
                           <Button 
                             onClick={() => {
                               setGroupDialogOpen(false);
-                              const { toast } = useToast();
                               toast({
                                 title: editingGroup ? "Group updated" : "Group added",
                                 description: "Your changes have been saved successfully.",
@@ -544,7 +544,6 @@ export default function AccountPage() {
                           <Button 
                             onClick={() => {
                               setMaterialDialogOpen(false);
-                              const { toast } = useToast();
                               toast({
                                 title: editingMaterial ? "Material updated" : "Material added",
                                 description: "Your changes have been saved successfully.",
@@ -709,7 +708,6 @@ export default function AccountPage() {
                           <Button 
                             onClick={() => {
                               setFieldDialogOpen(false);
-                              const { toast } = useToast();
                               toast({
                                 title: editingField ? "Field updated" : "Field added",
                                 description: "Your changes have been saved successfully.",
