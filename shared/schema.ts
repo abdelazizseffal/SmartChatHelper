@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb, real } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, real, primaryKey } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -209,3 +209,123 @@ export type InsertSubscriptionPlan = z.infer<typeof insertSubscriptionPlanSchema
 
 export type Subscription = typeof subscriptions.$inferSelect;
 export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
+
+// Material Groups
+export const materialGroups = pgTable("material_groups", {
+  id: serial("id").primaryKey(),
+  workspaceId: integer("workspace_id").notNull(),
+  name: text("name").notNull(),
+  createdById: integer("created_by_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertMaterialGroupSchema = createInsertSchema(materialGroups).pick({
+  workspaceId: true,
+  name: true,
+  createdById: true,
+});
+
+export type MaterialGroup = typeof materialGroups.$inferSelect;
+export type InsertMaterialGroup = z.infer<typeof insertMaterialGroupSchema>;
+
+// Material Warehouse (remnants)
+export const materialWarehouse = pgTable("material_warehouse", {
+  id: serial("id").primaryKey(),
+  workspaceId: integer("workspace_id").notNull(),
+  material: text("material").notNull(),
+  length: real("length").notNull(),
+  diameter: real("diameter").notNull(),
+  thickness: real("thickness").notNull(),
+  groupId: integer("group_id"),
+  status: text("status").default("available").notNull(),
+  createdById: integer("created_by_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  notes: text("notes"),
+});
+
+export const insertMaterialWarehouseSchema = createInsertSchema(materialWarehouse).pick({
+  workspaceId: true,
+  material: true,
+  length: true,
+  diameter: true,
+  thickness: true,
+  groupId: true,
+  status: true,
+  createdById: true,
+  notes: true,
+});
+
+export type MaterialWarehouseItem = typeof materialWarehouse.$inferSelect;
+export type InsertMaterialWarehouseItem = z.infer<typeof insertMaterialWarehouseSchema>;
+
+// Custom Text Fields
+export const customTextFields = pgTable("custom_text_fields", {
+  id: serial("id").primaryKey(),
+  workspaceId: integer("workspace_id").notNull(),
+  fieldName: text("field_name").notNull(),
+  displayInPlans: boolean("display_in_plans").default(true).notNull(),
+  fieldOrder: integer("field_order").default(0).notNull(),
+  createdById: integer("created_by_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertCustomTextFieldSchema = createInsertSchema(customTextFields).pick({
+  workspaceId: true,
+  fieldName: true,
+  displayInPlans: true,
+  fieldOrder: true,
+  createdById: true,
+});
+
+export type CustomTextField = typeof customTextFields.$inferSelect;
+export type InsertCustomTextField = z.infer<typeof insertCustomTextFieldSchema>;
+
+// Cutting Plans
+export const cuttingPlans = pgTable("cutting_plans", {
+  id: serial("id").primaryKey(),
+  workspaceId: integer("workspace_id").notNull(),
+  name: text("name").notNull(),
+  optimizationResultId: integer("optimization_result_id").notNull(),
+  status: text("status").default("draft").notNull(),
+  customFields: jsonb("custom_fields"),
+  createdById: integer("created_by_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertCuttingPlanSchema = createInsertSchema(cuttingPlans).pick({
+  workspaceId: true,
+  name: true,
+  optimizationResultId: true,
+  status: true,
+  customFields: true,
+  createdById: true,
+});
+
+export type CuttingPlan = typeof cuttingPlans.$inferSelect;
+export type InsertCuttingPlan = z.infer<typeof insertCuttingPlanSchema>;
+
+// User Settings
+export const userSettings = pgTable("user_settings", {
+  userId: integer("user_id").primaryKey(),
+  preferences: jsonb("preferences").default({}).notNull(),
+  kerfWidth: real("kerf_width").default(2.0).notNull(),
+  minWasteThreshold: real("min_waste_threshold").default(100).notNull(),
+  displayLabels: boolean("display_labels").default(true).notNull(),
+  colorHighlighting: boolean("color_highlighting").default(true).notNull(),
+  leftTrim: real("left_trim").default(0).notNull(),
+  rightTrim: real("right_trim").default(0).notNull(),
+  showAdditionalInfo: boolean("show_additional_info").default(true).notNull(),
+  includePartsList: boolean("include_parts_list").default(true).notNull(),
+  minRemnantLength: real("min_remnant_length").default(100).notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertUserSettingsSchema = createInsertSchema(userSettings)
+  .omit({ userId: true })
+  .extend({
+    userId: z.number(),
+  });
+
+export type UserSettings = typeof userSettings.$inferSelect;
+export type InsertUserSettings = z.infer<typeof insertUserSettingsSchema>;
