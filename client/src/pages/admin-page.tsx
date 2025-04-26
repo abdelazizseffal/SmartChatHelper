@@ -1,11 +1,16 @@
 import { useState } from "react";
 import { Header } from "@/components/layout/header";
-import { useQuery } from "@tanstack/react-query";
-import { Loader2, User, Briefcase, CreditCard } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Loader2, User, Briefcase, CreditCard, Settings, Shield, Database } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -14,15 +19,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { Redirect } from "wouter";
 
 export default function AdminPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("users");
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
+  const [selectedRole, setSelectedRole] = useState("");
   
-  // Check if user is admin
-  if (user && user.role !== "admin") {
+  // Check if user is admin or super_admin
+  if (user && user.role !== "admin" && user.role !== "super_admin") {
     return <Redirect to="/" />;
   }
   
@@ -41,6 +50,32 @@ export default function AdminPage() {
     queryKey: ["/api/admin/subscriptions"],
     enabled: activeTab === "subscriptions"
   });
+  
+  const { data: systemStats, isLoading: isLoadingSystemStats } = useQuery({
+    queryKey: ["/api/admin/system-stats"],
+    enabled: activeTab === "system" && user?.role === "super_admin"
+  });
+  
+  // Update user role mutation
+  const updateUserRoleMutation = useMutation({
+    mutationFn: async ({ userId, role }: { userId: number; role: string }) => {
+      const res = await apiRequest("PUT", `/api/admin/users/${userId}/role`, { role });
+      if (!res.ok) {
+        throw new Error("Failed to update user role");
+      }
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      setIsRoleDialogOpen(false);
+    }
+  });
+  
+  const openRoleDialog = (userId: number, currentRole: string) => {
+    setSelectedUserId(userId);
+    setSelectedRole(currentRole);
+    setIsRoleDialogOpen(true);
+  };
   
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900">
@@ -109,10 +144,18 @@ export default function AdminPage() {
         </div>
         
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3 mb-8">
+          <TabsList className={`grid w-full mb-8 ${user?.role === 'super_admin' ? 'grid-cols-4' : 'grid-cols-3'}`}>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="workspaces">Workspaces</TabsTrigger>
             <TabsTrigger value="subscriptions">Subscriptions</TabsTrigger>
+            {user?.role === 'super_admin' && (
+              <TabsTrigger value="system">
+                <div className="flex items-center">
+                  <Shield className="mr-2 h-4 w-4" />
+                  <span>Super Admin</span>
+                </div>
+              </TabsTrigger>
+            )}
           </TabsList>
           
           <TabsContent value="users">
@@ -139,19 +182,36 @@ export default function AdminPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {users && users.map((user: any) => (
-                        <TableRow key={user.id}>
-                          <TableCell>{user.id}</TableCell>
-                          <TableCell>{user.username}</TableCell>
-                          <TableCell>{user.email}</TableCell>
+                      {users && users.map((listUser: any) => (
+                        <TableRow key={listUser.id}>
+                          <TableCell>{listUser.id}</TableCell>
+                          <TableCell>{listUser.username}</TableCell>
+                          <TableCell>{listUser.email}</TableCell>
                           <TableCell>
-                            <Badge variant={user.role === 'admin' ? 'destructive' : 'default'}>
-                              {user.role}
+                            <Badge 
+                              variant={
+                                listUser.role === 'super_admin' ? 'destructive' : 
+                                listUser.role === 'admin' ? 'secondary' : 
+                                'default'
+                              }
+                            >
+                              {listUser.role}
                             </Badge>
                           </TableCell>
-                          <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
+                          <TableCell>{new Date(listUser.createdAt).toLocaleDateString()}</TableCell>
                           <TableCell>
-                            <Button variant="outline" size="sm">Details</Button>
+                            <div className="flex space-x-2">
+                              <Button variant="outline" size="sm">Details</Button>
+                              {user?.role === 'super_admin' && (
+                                <Button 
+                                  variant="secondary" 
+                                  size="sm"
+                                  onClick={() => openRoleDialog(listUser.id, listUser.role)}
+                                >
+                                  Edit Role
+                                </Button>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -257,8 +317,144 @@ export default function AdminPage() {
               </CardContent>
             </Card>
           </TabsContent>
+          
+          {user?.role === 'super_admin' && (
+            <TabsContent value="system">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Shield className="h-5 w-5 mr-2 text-destructive" />
+                      Super Admin Controls
+                    </CardTitle>
+                    <CardDescription>Manage system-wide settings and permissions</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 items-center gap-4">
+                        <Label htmlFor="maintenance-mode">Maintenance Mode</Label>
+                        <Switch id="maintenance-mode" />
+                      </div>
+                      <div className="grid grid-cols-2 items-center gap-4">
+                        <Label htmlFor="user-registration">User Registration</Label>
+                        <Switch id="user-registration" defaultChecked />
+                      </div>
+                      <div className="grid grid-cols-2 items-center gap-4">
+                        <Label htmlFor="system-debug">Debug Logging</Label>
+                        <Switch id="system-debug" />
+                      </div>
+                    </div>
+                  </CardContent>
+                  <CardFooter>
+                    <Button className="w-full">Save System Settings</Button>
+                  </CardFooter>
+                </Card>
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Database className="h-5 w-5 mr-2 text-primary" />
+                      Database Management
+                    </CardTitle>
+                    <CardDescription>View and manage database information</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {isLoadingSystemStats ? (
+                      <div className="flex justify-center p-4">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Total Projects</p>
+                            <p className="text-2xl font-bold">{systemStats?.projectCount || 0}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Total Optimizations</p>
+                            <p className="text-2xl font-bold">{systemStats?.optimizationCount || 0}</p>
+                          </div>
+                        </div>
+                        <div className="rounded-md bg-muted p-4">
+                          <h4 className="mb-2 text-sm font-medium">Database Health</h4>
+                          <div className="text-xs text-muted-foreground">
+                            <p>Connection: <span className="text-green-500 font-semibold">Connected</span></p>
+                            <p>Type: PostgreSQL</p>
+                            <p>Status: Active</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                  <CardFooter className="flex justify-between">
+                    <Button variant="outline">Backup Database</Button>
+                    <Button variant="secondary">Optimize Tables</Button>
+                  </CardFooter>
+                </Card>
+              </div>
+            </TabsContent>
+          )}
         </Tabs>
       </div>
+      
+      <Dialog open={isRoleDialogOpen} onOpenChange={setIsRoleDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change User Role</DialogTitle>
+            <DialogDescription>
+              Update the role and permissions for this user
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="role" className="text-right">
+                Role
+              </Label>
+              <Select
+                value={selectedRole}
+                onValueChange={setSelectedRole}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="super_admin">Super Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsRoleDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => {
+                if (selectedUserId) {
+                  updateUserRoleMutation.mutate({
+                    userId: selectedUserId,
+                    role: selectedRole
+                  });
+                }
+              }}
+              disabled={updateUserRoleMutation.isPending}
+            >
+              {updateUserRoleMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
