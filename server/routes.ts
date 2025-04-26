@@ -9,7 +9,10 @@ import {
   insertProjectSchema, 
   insertPipeSpecSchema, 
   insertRequiredCutSchema,
-  insertSubscriptionPlanSchema
+  insertSubscriptionPlanSchema,
+  insertMaterialGroupSchema,
+  insertMaterialWarehouseSchema,
+  insertCustomTextFieldSchema
 } from "@shared/schema";
 import { runOptimization } from "./optimization";
 
@@ -781,6 +784,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Update a material group
+  app.patch("/api/material-groups/:id", isAuthenticated, async (req, res) => {
+    const groupId = parseInt(req.params.id);
+    try {
+      const group = await storage.getMaterialGroup(groupId);
+      if (!group) {
+        return res.status(404).json({ message: "Material group not found" });
+      }
+      
+      // Check if user has access to the workspace
+      const workspace = await storage.getWorkspace(group.workspaceId);
+      if (!workspace) {
+        return res.status(404).json({ message: "Workspace not found" });
+      }
+      
+      // Only workspace owner, members, or admins can update material groups
+      const members = await storage.getWorkspaceMembers(workspace.id);
+      const userMembership = members.find(member => member.userId === req.user.id);
+      
+      if (!userMembership && req.user.role !== "admin") {
+        return res.status(403).json({ message: "You don't have access to this material group" });
+      }
+      
+      const updatedGroup = await storage.updateMaterialGroup(groupId, req.body);
+      res.json(updatedGroup);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   app.delete("/api/material-groups/:id", isAuthenticated, async (req, res) => {
     const groupId = parseInt(req.params.id);
     try {
