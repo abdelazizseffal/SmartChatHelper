@@ -565,49 +565,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // New endpoint to process payments
+  // Process payment details for custom payment form
   app.post('/api/process-payment', isAuthenticated, async (req, res) => {
     try {
       const user = req.user;
-      const { paymentMethod, planId, amount, cardDetails } = req.body;
+      const { 
+        paymentMethod, 
+        planId, 
+        amount,
+        // Credit card fields
+        cardNumber,
+        cardName,
+        expiryDate,
+        cvv,
+        // PayPal fields
+        paypalEmail
+      } = req.body;
       
-      // Validate required fields
-      if (!paymentMethod || !planId || !amount) {
-        return res.status(400).json({ message: 'Missing required payment information' });
+      // Validate payment method
+      if (!paymentMethod) {
+        return res.status(400).json({ message: 'Payment method is required' });
       }
       
-      // For credit card payments, validate card details
+      // Process based on payment method
       if (paymentMethod === 'credit-card') {
-        if (!cardDetails || !cardDetails.cardNumber || !cardDetails.cardHolderName || 
-            !cardDetails.expiryDate || !cardDetails.cvv) {
-          return res.status(400).json({ message: 'Missing required card details' });
+        // Validate credit card fields
+        if (!cardNumber || !cardName || !expiryDate || !cvv) {
+          return res.status(400).json({ message: 'All credit card details are required' });
         }
+        
+        // In a real implementation, we would:
+        // 1. Tokenize card details using a PCI-compliant payment processor
+        // 2. Create a payment method or charge with the token
+        console.log('Processing credit card payment...');
+        // Don't log actual card details in production!
+        console.log(`Card info: ${cardName}, ${cardNumber.substring(cardNumber.length - 4)}`);
+      } 
+      else if (paymentMethod === 'paypal') {
+        // Validate PayPal fields
+        if (!paypalEmail) {
+          return res.status(400).json({ message: 'PayPal email is required' });
+        }
+        
+        // In a real implementation, we would:
+        // 1. Create a PayPal order
+        // 2. Return the approval URL
+        console.log('Processing PayPal payment...');
+        console.log(`PayPal email: ${paypalEmail}`);
+      } 
+      else {
+        return res.status(400).json({ message: 'Unsupported payment method' });
       }
-      
-      // In a real implementation, we would process the payment with a payment gateway
-      // For this demo, we'll simulate a successful payment
       
       // Get the user's subscription
       const subscription = await storage.getUserSubscription(user.id);
       if (!subscription) {
-        return res.status(404).json({ message: 'No pending subscription found' });
+        return res.status(404).json({ message: 'No subscription found' });
       }
       
-      // Update subscription status to active
+      // Update subscription with payment details
       await storage.updateSubscription(subscription.id, {
         status: 'active',
         paymentMethod: paymentMethod
       });
       
-      // Record the payment details (in a real app, this would be in a separate payments table)
-      console.log(`Payment processed for user ${user.id}: ${amount} via ${paymentMethod}`);
-      
-      // Return success response
+      // Return success response with updated subscription
       res.json({ 
         success: true,
         subscription: await storage.getUserSubscription(user.id)
       });
     } catch (error: any) {
+      console.error('Payment processing error:', error);
       res.status(500).json({ message: `Payment processing failed: ${error.message}` });
     }
   });

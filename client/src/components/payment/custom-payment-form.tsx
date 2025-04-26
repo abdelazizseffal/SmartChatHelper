@@ -61,28 +61,54 @@ export function CustomPaymentForm({ planId, amount, onSuccess, onCancel }: Payme
     setIsProcessing(true);
 
     try {
-      // In a real implementation, this would securely send payment info to your payment processor
-      // For this prototype, we're simulating the payment process
-      
+      // First, create the subscription
       const subscriptionData = {
         userId: user?.id,
         planId: planId,
-        paymentMethod: paymentMethod,
-        // Include payment details in a real implementation
+        paymentMethod: paymentMethod
       };
 
-      // Process payment with backend
-      const response = await apiRequest("POST", "/api/create-subscription", subscriptionData);
+      // Create subscription
+      const subscriptionResponse = await apiRequest("POST", "/api/create-subscription", subscriptionData);
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Payment failed");
+      if (!subscriptionResponse.ok) {
+        const errorData = await subscriptionResponse.json();
+        throw new Error(errorData.message || "Failed to create subscription");
+      }
+      
+      // Now process the payment details
+      const paymentData = {
+        paymentMethod: paymentMethod,
+        planId: planId,
+        amount: amount,
+      };
+      
+      // Add payment method specific details
+      if (paymentMethod === 'credit-card') {
+        Object.assign(paymentData, {
+          cardNumber: cardNumber,
+          cardName: cardName,
+          expiryDate: expiryDate,
+          cvv: cvv
+        });
+      } else if (paymentMethod === 'paypal') {
+        Object.assign(paymentData, {
+          paypalEmail: paypalEmail
+        });
+      }
+      
+      // Process payment details
+      const paymentResponse = await apiRequest("POST", "/api/process-payment", paymentData);
+      
+      if (!paymentResponse.ok) {
+        const errorData = await paymentResponse.json();
+        throw new Error(errorData.message || "Payment processing failed");
       }
 
       // Show success message
       setIsSuccess(true);
       
-      // Notify parent component of success
+      // Notify parent component of success after a brief delay
       setTimeout(() => {
         onSuccess();
       }, 2000);
