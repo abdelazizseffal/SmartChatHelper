@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { Header } from "@/components/layout/header";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Loader2, User, Briefcase, CreditCard, Settings, Shield, Database } from "lucide-react";
+import { 
+  Loader2, User, Briefcase, CreditCard, Settings, Shield, Database, 
+  Bell, BookOpen, BarChart, Users, FileText, Package, LayersIcon,
+  PanelLeft, Menu, X, Boxes, Tag, Pencil
+} from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -21,7 +25,34 @@ import {
 } from "@/components/ui/table";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
-import { Redirect } from "wouter";
+import { Redirect, Link } from "wouter";
+import { cn } from "@/lib/utils";
+import SubscriptionPlanManagement from "@/components/admin/subscription-plan-management";
+
+// Super Admin Sidebar Navigation Item Component
+interface SidebarItemProps {
+  icon: React.ReactNode;
+  title: string;
+  active: boolean;
+  onClick: () => void;
+}
+
+function SidebarItem({ icon, title, active, onClick }: SidebarItemProps) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "flex items-center w-full space-x-2 text-sm px-3 py-2 rounded-md transition-colors",
+        active 
+          ? "bg-primary text-primary-foreground font-medium" 
+          : "text-muted-foreground hover:text-foreground hover:bg-muted"
+      )}
+    >
+      {icon}
+      <span>{title}</span>
+    </button>
+  );
+}
 
 export default function AdminPage() {
   const { user } = useAuth();
@@ -29,6 +60,8 @@ export default function AdminPage() {
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activeSuperAdminSection, setActiveSuperAdminSection] = useState("dashboard");
   
   // Check if user is admin or super_admin
   if (user && user.role !== "admin" && user.role !== "super_admin") {
