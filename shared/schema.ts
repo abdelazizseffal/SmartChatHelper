@@ -130,6 +130,35 @@ export const insertOptimizationResultSchema = createInsertSchema(optimizationRes
   parameters: true,
 });
 
+// Subscription Plans
+export const subscriptionPlans = pgTable("subscription_plans", {
+  id: serial("id").primaryKey(),
+  planId: text("plan_id").notNull().unique(),
+  name: text("name").notNull(),
+  price: real("price").notNull(),
+  interval: text("interval").notNull().default("monthly"),
+  description: text("description"),
+  features: jsonb("features").$type<string[]>(),
+  projectLimit: integer("project_limit").notNull(),
+  optimizationLimit: integer("optimization_limit").notNull(),
+  pdfExportEnabled: boolean("pdf_export_enabled").notNull().default(false),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertSubscriptionPlanSchema = createInsertSchema(subscriptionPlans).pick({
+  planId: true,
+  name: true,
+  price: true,
+  interval: true,
+  description: true,
+  features: true,
+  projectLimit: true,
+  optimizationLimit: true,
+  pdfExportEnabled: true,
+  active: true,
+});
+
 // Subscriptions
 export const subscriptions = pgTable("subscriptions", {
   id: serial("id").primaryKey(),
@@ -140,6 +169,8 @@ export const subscriptions = pgTable("subscriptions", {
   currentPeriodStart: timestamp("current_period_start").notNull(),
   currentPeriodEnd: timestamp("current_period_end").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  projectsCreated: integer("projects_created").notNull().default(0),
+  optimizationsRun: integer("optimizations_run").notNull().default(0),
 });
 
 export const insertSubscriptionSchema = createInsertSchema(subscriptions).pick({
@@ -172,6 +203,9 @@ export type InsertRequiredCut = z.infer<typeof insertRequiredCutSchema>;
 
 export type OptimizationResult = typeof optimizationResults.$inferSelect;
 export type InsertOptimizationResult = z.infer<typeof insertOptimizationResultSchema>;
+
+export type SubscriptionPlan = typeof subscriptionPlans.$inferSelect;
+export type InsertSubscriptionPlan = z.infer<typeof insertSubscriptionPlanSchema>;
 
 export type Subscription = typeof subscriptions.$inferSelect;
 export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;

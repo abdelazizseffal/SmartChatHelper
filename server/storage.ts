@@ -1,5 +1,5 @@
-import { users, workspaces, workspaceMembers, projects, pipeSpecs, requiredCuts, optimizationResults, subscriptions } from "@shared/schema";
-import type { User, InsertUser, Workspace, InsertWorkspace, WorkspaceMember, InsertWorkspaceMember, Project, InsertProject, PipeSpec, InsertPipeSpec, RequiredCut, InsertRequiredCut, OptimizationResult, InsertOptimizationResult, Subscription, InsertSubscription } from "@shared/schema";
+import { users, workspaces, workspaceMembers, projects, pipeSpecs, requiredCuts, optimizationResults, subscriptions, subscriptionPlans } from "@shared/schema";
+import type { User, InsertUser, Workspace, InsertWorkspace, WorkspaceMember, InsertWorkspaceMember, Project, InsertProject, PipeSpec, InsertPipeSpec, RequiredCut, InsertRequiredCut, OptimizationResult, InsertOptimizationResult, Subscription, InsertSubscription, SubscriptionPlan, InsertSubscriptionPlan } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 
@@ -56,6 +56,17 @@ export interface IStorage {
   createSubscription(subscription: InsertSubscription): Promise<Subscription>;
   getUserSubscription(userId: number): Promise<Subscription | undefined>;
   updateSubscription(id: number, data: Partial<Subscription>): Promise<Subscription>;
+  incrementProjectCount(userId: number): Promise<Subscription>;
+  incrementOptimizationCount(userId: number): Promise<Subscription>;
+  
+  // Subscription Plan operations
+  createSubscriptionPlan(plan: InsertSubscriptionPlan): Promise<SubscriptionPlan>;
+  getSubscriptionPlan(planId: string): Promise<SubscriptionPlan | undefined>;
+  getSubscriptionPlanById(id: number): Promise<SubscriptionPlan | undefined>;
+  getAllSubscriptionPlans(): Promise<SubscriptionPlan[]>;
+  getActiveSubscriptionPlans(): Promise<SubscriptionPlan[]>;
+  updateSubscriptionPlan(id: number, data: Partial<SubscriptionPlan>): Promise<SubscriptionPlan>;
+  deleteSubscriptionPlan(id: number): Promise<void>;
   
   // Session store
   sessionStore: session.Store;
@@ -70,6 +81,7 @@ export class MemStorage implements IStorage {
   private requiredCuts: Map<number, RequiredCut>;
   private optimizationResults: Map<number, OptimizationResult>;
   private subscriptions: Map<number, Subscription>;
+  private subscriptionPlans: Map<number, SubscriptionPlan>;
   
   sessionStore: session.Store;
   
@@ -81,6 +93,7 @@ export class MemStorage implements IStorage {
   private requiredCutIdCounter: number = 1;
   private optimizationResultIdCounter: number = 1;
   private subscriptionIdCounter: number = 1;
+  private subscriptionPlanIdCounter: number = 1;
   
   constructor() {
     this.users = new Map();
@@ -91,9 +104,37 @@ export class MemStorage implements IStorage {
     this.requiredCuts = new Map();
     this.optimizationResults = new Map();
     this.subscriptions = new Map();
+    this.subscriptionPlans = new Map();
     
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000 // 24 hours
+    });
+    
+    // Create default subscription plans
+    this.createSubscriptionPlan({
+      planId: "free",
+      name: "Free",
+      price: 0,
+      interval: "monthly",
+      description: "Basic free plan with limited features",
+      features: ["Basic pipe cutting optimization", "Limited to 1 project", "Limited to 1 optimization"],
+      projectLimit: 1,
+      optimizationLimit: 1,
+      pdfExportEnabled: false,
+      active: true
+    });
+    
+    this.createSubscriptionPlan({
+      planId: "premium",
+      name: "Premium",
+      price: 29.99,
+      interval: "monthly",
+      description: "Premium plan with unlimited features",
+      features: ["Advanced pipe cutting optimization", "Unlimited projects", "Unlimited optimizations", "PDF export"],
+      projectLimit: -1, // -1 means unlimited
+      optimizationLimit: -1, // -1 means unlimited
+      pdfExportEnabled: true,
+      active: true
     });
   }
   
