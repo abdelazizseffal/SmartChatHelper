@@ -486,6 +486,14 @@ export default function AdminPage() {
                         <CardDescription>Create and manage subscription plans</CardDescription>
                       </CardHeader>
                       <CardContent>
+                        <div className="mb-4">
+                          <Link href="/create-subscription-plan">
+                            <Button>
+                              <CreditCard className="mr-2 h-4 w-4" />
+                              Create Default Plans
+                            </Button>
+                          </Link>
+                        </div>
                         <SubscriptionPlanManagement />
                       </CardContent>
                     </Card>
