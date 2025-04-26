@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import Stripe from "stripe";
 import { z } from "zod";
 import { insertWorkspaceSchema, insertProjectSchema, insertPipeSpecSchema, insertRequiredCutSchema } from "@shared/schema";
+import { runOptimization } from "./optimization";
 
 // Initialize Stripe
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -384,79 +385,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "No required cuts found for this project" });
       }
       
-      // Run optimization algorithm
-      // This is a very simplified example - a real implementation would have a more complex algorithm
-      
       // Extract optimization parameters from request
       const { kerfWidth, minWasteThreshold, prioritizeWasteReduction } = req.body.parameters || {};
       
-      // Mock optimization results (in production, this would be calculated by the algorithm)
-      const mockResults = {
-        pipesUsed: 4,
-        materialEfficiency: 92.4,
-        totalWaste: 1824,
-        cutOperations: 24,
-        results: [
-          // Simplified example of cutting pattern
-          {
-            pipeIndex: 0,
-            cuts: [
-              { length: 1200, startPos: 0, endPos: 1200 },
-              { length: 1200, startPos: 1202, endPos: 2402 },
-              { length: 1200, startPos: 2404, endPos: 3604 },
-              { length: 1200, startPos: 3606, endPos: 4806 },
-              { length: 850, startPos: 4808, endPos: 5658 }
-            ],
-            waste: 350
-          },
-          {
-            pipeIndex: 1,
-            cuts: [
-              { length: 850, startPos: 0, endPos: 850 },
-              { length: 850, startPos: 852, endPos: 1702 },
-              { length: 850, startPos: 1704, endPos: 2554 },
-              { length: 2400, startPos: 2556, endPos: 4956 }
-            ],
-            waste: 1050
-          },
-          {
-            pipeIndex: 2,
-            cuts: [
-              { length: 2400, startPos: 0, endPos: 2400 },
-              { length: 2400, startPos: 2402, endPos: 4802 },
-              { length: 1200, startPos: 4804, endPos: 6004 }
-            ],
-            waste: 0
-          },
-          {
-            pipeIndex: 3,
-            cuts: [
-              { length: 1200, startPos: 0, endPos: 1200 },
-              { length: 1200, startPos: 1202, endPos: 2402 },
-              { length: 1200, startPos: 2404, endPos: 3604 },
-              { length: 1200, startPos: 3606, endPos: 4806 },
-              { length: 850, startPos: 4808, endPos: 5658 }
-            ],
-            waste: 350
-          }
-        ],
-        parameters: {
-          kerfWidth: kerfWidth || 2.0,
-          minWasteThreshold: minWasteThreshold || 100,
-          prioritizeWasteReduction: prioritizeWasteReduction || 70
-        }
+      // Set up optimization parameters
+      const optimizationParams = {
+        kerfWidth: kerfWidth || 2.0,
+        minWasteThreshold: minWasteThreshold || 100,
+        prioritizeWasteReduction: prioritizeWasteReduction || 70
       };
+      
+      // Run the actual optimization algorithm
+      console.log("Running optimization with parameters:", optimizationParams);
+      console.log("Pipe specs:", pipeSpecs);
+      console.log("Required cuts:", requiredCuts);
+      
+      // Run the optimization algorithm with our actual data
+      const optimizationResults = runOptimization(pipeSpecs, requiredCuts, optimizationParams);
+      
+      console.log("Optimization results:", optimizationResults);
       
       // Save optimization result
       const optimizationResult = await storage.createOptimizationResult({
         projectId,
         createdById: req.user.id,
-        pipesUsed: mockResults.pipesUsed,
-        materialEfficiency: mockResults.materialEfficiency,
-        totalWaste: mockResults.totalWaste,
-        cutOperations: mockResults.cutOperations,
-        results: mockResults.results,
-        parameters: mockResults.parameters
+        pipesUsed: optimizationResults.pipesUsed,
+        materialEfficiency: optimizationResults.materialEfficiency,
+        totalWaste: optimizationResults.totalWaste,
+        cutOperations: optimizationResults.cutOperations,
+        results: optimizationResults.results,
+        parameters: optimizationResults.parameters
       });
       
       res.status(201).json(optimizationResult);
