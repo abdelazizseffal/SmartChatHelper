@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Redirect } from "wouter";
 import { Header } from "@/components/layout/header";
@@ -8,6 +8,8 @@ import {
   TabsList, 
   TabsTrigger 
 } from "@/components/ui/tabs";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { 
   Card, 
   CardContent, 
@@ -66,6 +68,71 @@ export default function AccountPage() {
   const { user, isLoading } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("profile");
+  const [workspaceId, setWorkspaceId] = useState<number | null>(null);
+  
+  // Get the active workspace
+  const { data: workspaces } = useQuery<any[]>({
+    queryKey: ["/api/workspaces"],
+    enabled: !!user
+  });
+  
+  useEffect(() => {
+    if (workspaces?.length > 0) {
+      setWorkspaceId(workspaces[0].id);
+    }
+  }, [workspaces]);
+  
+  // Material Groups queries and mutations
+  const { data: materialGroups, refetch: refetchMaterialGroups } = useQuery<any[]>({
+    queryKey: ["/api/workspaces", workspaceId, "material-groups"],
+    enabled: !!workspaceId
+  });
+  
+  const createMaterialGroupMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest(
+        "POST", 
+        `/api/workspaces/${workspaceId}/material-groups`, 
+        data
+      );
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Material group created successfully" });
+      setGroupDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/workspaces", workspaceId, "material-groups"] });
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: "Failed to create material group", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    }
+  });
+  
+  const updateMaterialGroupMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest(
+        "PATCH", 
+        `/api/material-groups/${data.id}`, 
+        data
+      );
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Material group updated successfully" });
+      setGroupDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/workspaces", workspaceId, "material-groups"] });
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: "Failed to update material group", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    }
+  });
   
   // Material Warehouse state and handlers
   const [materialDialogOpen, setMaterialDialogOpen] = useState(false);
