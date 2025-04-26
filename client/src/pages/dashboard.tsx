@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Header } from "@/components/layout/header";
 import InputPanel from "@/components/optimization/input-panel";
 import OptimizationResults from "@/components/optimization/optimization-results";
-import { OptimizationParameters, PipeSpecification, RequiredCut } from "@/lib/optimization";
+import { OptimizationParameters, PipeSpecification, RequiredCut, OptimizationResult } from "@/lib/optimization";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Loader2 } from "lucide-react";
@@ -37,78 +37,26 @@ export default function Dashboard() {
   });
   
   // Optimization mutation
-  const optimizeMutation = useMutation({
+  const optimizeMutation = useMutation<OptimizationResult, Error>({
     mutationFn: async () => {
-      // If user has a workspace and project, we'll use the API
-      if (userWorkspaces && userWorkspaces.length > 0) {
-        // For simplicity in this MVP, we'll just use the first project or create one if needed
-        let projectId = 1; // Default for demo
-        
-        const res = await apiRequest("POST", `/api/projects/${projectId}/optimize`, {
-          pipeSpec,
-          requiredCuts,
-          parameters: optimizationParams
-        });
-        
-        return await res.json();
-      } else {
-        // Otherwise just use client-side calculation for demo
-        // This would be replaced with a real API call in production
-        return new Promise(resolve => {
-          setTimeout(() => {
-            resolve({
-              pipesUsed: 4,
-              materialEfficiency: 92.4,
-              totalWaste: 1824,
-              cutOperations: 24,
-              results: [
-                {
-                  pipeIndex: 0,
-                  cuts: [
-                    { length: 1200, startPos: 0, endPos: 1200 },
-                    { length: 1200, startPos: 1202, endPos: 2402 },
-                    { length: 1200, startPos: 2404, endPos: 3604 },
-                    { length: 1200, startPos: 3606, endPos: 4806 },
-                    { length: 850, startPos: 4808, endPos: 5658 }
-                  ],
-                  waste: 350
-                },
-                {
-                  pipeIndex: 1,
-                  cuts: [
-                    { length: 850, startPos: 0, endPos: 850 },
-                    { length: 850, startPos: 852, endPos: 1702 },
-                    { length: 850, startPos: 1704, endPos: 2554 },
-                    { length: 2400, startPos: 2556, endPos: 4956 }
-                  ],
-                  waste: 1050
-                },
-                {
-                  pipeIndex: 2,
-                  cuts: [
-                    { length: 2400, startPos: 0, endPos: 2400 },
-                    { length: 2400, startPos: 2402, endPos: 4802 },
-                    { length: 1200, startPos: 4804, endPos: 6004 }
-                  ],
-                  waste: 0
-                },
-                {
-                  pipeIndex: 3,
-                  cuts: [
-                    { length: 1200, startPos: 0, endPos: 1200 },
-                    { length: 1200, startPos: 1202, endPos: 2402 },
-                    { length: 1200, startPos: 2404, endPos: 3604 },
-                    { length: 1200, startPos: 3606, endPos: 4806 },
-                    { length: 850, startPos: 4808, endPos: 5658 }
-                  ],
-                  waste: 350
-                }
-              ],
-              parameters: optimizationParams
-            });
-          }, 1500); // Simulate network delay
-        });
+      // Always use the backend API for optimization
+      // For simplicity in this MVP, we'll just use a fixed project ID
+      let projectId = 1; // Default for demo
+      
+      const res = await apiRequest("POST", `/api/projects/${projectId}/optimize`, {
+        pipeSpec,
+        requiredCuts,
+        parameters: optimizationParams
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Optimization failed");
       }
+      
+      const data = await res.json();
+      console.log("Received optimization results:", data);
+      return data;
     },
     onSuccess: (data) => {
       queryClient.setQueryData(["optimization-results"], data);
@@ -143,7 +91,7 @@ export default function Dashboard() {
   };
   
   // Get optimization results if available
-  const { data: optimizationResults } = useQuery({
+  const { data: optimizationResults } = useQuery<OptimizationResult>({
     queryKey: ["optimization-results"],
     enabled: false, // Only fetch when explicitly requested
   });

@@ -396,14 +396,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       // Run the actual optimization algorithm
-      console.log("Running optimization with parameters:", optimizationParams);
-      console.log("Pipe specs:", pipeSpecs);
-      console.log("Required cuts:", requiredCuts);
+      console.log("Running optimization with parameters:", JSON.stringify(optimizationParams));
+      console.log("Pipe specs:", JSON.stringify(pipeSpecs));
+      console.log("Required cuts:", JSON.stringify(requiredCuts));
       
       // Run the optimization algorithm with our actual data
       const optimizationResults = runOptimization(pipeSpecs, requiredCuts, optimizationParams);
       
-      console.log("Optimization results:", optimizationResults);
+      // Make sure we convert to a serializable format and back to ensure full object is recorded
+      const serializedResults = JSON.parse(JSON.stringify(optimizationResults));
+      console.log("Optimization results:", JSON.stringify(serializedResults, null, 2));
       
       // Save optimization result
       const optimizationResult = await storage.createOptimizationResult({
