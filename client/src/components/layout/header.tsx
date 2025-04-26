@@ -104,9 +104,9 @@ export function Header() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuItem asChild>
-                    <Link href="/profile" className="flex items-center cursor-pointer">
+                    <Link href="/account" className="flex items-center cursor-pointer">
                       <User className="mr-2 h-4 w-4" />
-                      <span>Profile</span>
+                      <span>My Account</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
@@ -153,6 +153,9 @@ export function Header() {
                     </Link>
                     <Link href="/projects" className={`${location === '/projects' ? 'bg-primary text-white' : 'text-neutral-500 dark:text-neutral-400 hover:bg-primary-50 dark:hover:bg-primary-900 hover:text-primary'} block px-3 py-2 rounded-md text-base font-medium`}>
                       Projects
+                    </Link>
+                    <Link href="/account" className={`${location === '/account' ? 'bg-primary text-white' : 'text-neutral-500 dark:text-neutral-400 hover:bg-primary-50 dark:hover:bg-primary-900 hover:text-primary'} block px-3 py-2 rounded-md text-base font-medium`}>
+                      My Account
                     </Link>
                     <Link href="/billing" className={`${location === '/billing' ? 'bg-primary text-white' : 'text-neutral-500 dark:text-neutral-400 hover:bg-primary-50 dark:hover:bg-primary-900 hover:text-primary'} block px-3 py-2 rounded-md text-base font-medium`}>
                       Billing
