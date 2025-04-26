@@ -373,35 +373,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "You don't have access to this project" });
       }
       
-      // Get pipe specs and required cuts for this project
-      const pipeSpecs = await storage.getProjectPipeSpecs(projectId);
-      const requiredCuts = await storage.getProjectRequiredCuts(projectId);
+      // Get data from the request body instead of the database
+      const { pipeSpec, requiredCuts, parameters } = req.body;
       
-      if (pipeSpecs.length === 0) {
-        return res.status(400).json({ message: "No pipe specifications found for this project" });
+      if (!pipeSpec) {
+        return res.status(400).json({ message: "No pipe specification provided" });
       }
       
-      if (requiredCuts.length === 0) {
-        return res.status(400).json({ message: "No required cuts found for this project" });
+      if (!requiredCuts || requiredCuts.length === 0) {
+        return res.status(400).json({ message: "No required cuts provided" });
       }
-      
-      // Extract optimization parameters from request
-      const { kerfWidth, minWasteThreshold, prioritizeWasteReduction } = req.body.parameters || {};
       
       // Set up optimization parameters
       const optimizationParams = {
-        kerfWidth: kerfWidth || 2.0,
-        minWasteThreshold: minWasteThreshold || 100,
-        prioritizeWasteReduction: prioritizeWasteReduction || 70
+        kerfWidth: parameters?.kerfWidth || 2.0,
+        minWasteThreshold: parameters?.minWasteThreshold || 100,
+        prioritizeWasteReduction: parameters?.prioritizeWasteReduction || 70
       };
       
-      // Run the actual optimization algorithm
+      // Log the received data for debugging
       console.log("Running optimization with parameters:", JSON.stringify(optimizationParams));
-      console.log("Pipe specs:", JSON.stringify(pipeSpecs));
+      console.log("Pipe spec:", JSON.stringify(pipeSpec));
       console.log("Required cuts:", JSON.stringify(requiredCuts));
       
-      // Run the optimization algorithm with our actual data
-      const optimizationResults = runOptimization(pipeSpecs, requiredCuts, optimizationParams);
+      // Convert the pipe spec into the expected format and run the optimization
+      const formattedPipeSpec = [{
+        length: pipeSpec.length,
+        diameter: pipeSpec.diameter,
+        thickness: pipeSpec.thickness,
+        material: pipeSpec.material,
+        quantity: pipeSpec.quantity
+      }];
+      
+      // Run the optimization algorithm with the provided data
+      const optimizationResults = runOptimization(formattedPipeSpec, requiredCuts, optimizationParams);
       
       // Make sure we convert to a serializable format and back to ensure full object is recorded
       const serializedResults = JSON.parse(JSON.stringify(optimizationResults));
