@@ -134,7 +134,12 @@ export default function AccountPage() {
     }
   });
   
-  // Material Warehouse queries and mutations
+  // Material Groups and Material Warehouse queries
+  const { data: groups, refetch: refetchGroups } = useQuery<any[]>({
+    queryKey: ["/api/workspaces", workspaceId, "material-groups"],
+    enabled: !!workspaceId
+  });
+
   const { data: materials, refetch: refetchMaterials } = useQuery<any[]>({
     queryKey: ["/api/workspaces", workspaceId, "material-warehouse"],
     enabled: !!workspaceId
@@ -415,52 +420,35 @@ export default function AccountPage() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            <TableRow>
-                              <TableCell>Standard Pipes</TableCell>
-                              <TableCell>{new Date().toLocaleDateString()}</TableCell>
-                              <TableCell>3</TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon"
-                                    onClick={() => {
-                                      setEditingGroup({
-                                        id: 1,
-                                        name: "Standard Pipes",
-                                        description: "Common standard pipes and materials"
-                                      });
-                                      setGroupDialogOpen(true);
-                                    }}
-                                  >
-                                    <Pencil className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                            <TableRow>
-                              <TableCell>Special Alloys</TableCell>
-                              <TableCell>{new Date().toLocaleDateString()}</TableCell>
-                              <TableCell>1</TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon"
-                                    onClick={() => {
-                                      setEditingGroup({
-                                        id: 2,
-                                        name: "Special Alloys",
-                                        description: "Special stainless and high-grade alloy materials"
-                                      });
-                                      setGroupDialogOpen(true);
-                                    }}
-                                  >
-                                    <Pencil className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
+                            {groups && groups.length > 0 ? (
+                              groups.map((group) => (
+                                <TableRow key={group.id}>
+                                  <TableCell>{group.name}</TableCell>
+                                  <TableCell>{new Date(group.createdAt).toLocaleDateString()}</TableCell>
+                                  <TableCell>{materials?.filter(m => m.groupId === group.id)?.length || 0}</TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center gap-2">
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon"
+                                        onClick={() => {
+                                          setEditingGroup(group);
+                                          setGroupDialogOpen(true);
+                                        }}
+                                      >
+                                        <Pencil className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                            ) : (
+                              <TableRow>
+                                <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
+                                  No material groups found. Add your first group using the button above.
+                                </TableCell>
+                              </TableRow>
+                            )}
                           </TableBody>
                         </Table>
                       </div>
@@ -590,41 +578,42 @@ export default function AccountPage() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            <TableRow>
-                              <TableCell>Carbon Steel</TableCell>
-                              <TableCell>48.3 mm</TableCell>
-                              <TableCell>3.2 mm</TableCell>
-                              <TableCell>6000 mm</TableCell>
-                              <TableCell>Standard Pipes</TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                  Available
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon"
-                                    onClick={() => {
-                                      setEditingMaterial({
-                                        id: 1,
-                                        material: "Carbon Steel",
-                                        diameter: 48.3,
-                                        thickness: 3.2,
-                                        length: 6000,
-                                        groupId: 1,
-                                        status: "Available",
-                                        notes: "Standard EN 10255 pipe"
-                                      });
-                                      setMaterialDialogOpen(true);
-                                    }}
-                                  >
-                                    <Pencil className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
+                            {materials && materials.length > 0 ? (
+                              materials.map((material) => (
+                                <TableRow key={material.id}>
+                                  <TableCell>{material.material}</TableCell>
+                                  <TableCell>{material.diameter} mm</TableCell>
+                                  <TableCell>{material.thickness} mm</TableCell>
+                                  <TableCell>{material.length} mm</TableCell>
+                                  <TableCell>{material.groupId ? groups?.find(g => g.id === material.groupId)?.name || 'None' : 'None'}</TableCell>
+                                  <TableCell>
+                                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                      {material.status || 'Available'}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center gap-2">
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon"
+                                        onClick={() => {
+                                          setEditingMaterial(material);
+                                          setMaterialDialogOpen(true);
+                                        }}
+                                      >
+                                        <Pencil className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                            ) : (
+                              <TableRow>
+                                <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
+                                  No materials found. Add your first material using the button above.
+                                </TableCell>
+                              </TableRow>
+                            )}
                           </TableBody>
                         </Table>
                       </div>
@@ -659,8 +648,12 @@ export default function AccountPage() {
                                   <SelectValue placeholder="Select group" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="1">Standard Pipes</SelectItem>
-                                  <SelectItem value="2">Special Alloys</SelectItem>
+                                  <SelectItem value="none">None</SelectItem>
+                                  {groups && groups.map((group) => (
+                                    <SelectItem key={group.id} value={group.id.toString()}>
+                                      {group.name}
+                                    </SelectItem>
+                                  ))}
                                 </SelectContent>
                               </Select>
                             </div>
@@ -737,7 +730,7 @@ export default function AccountPage() {
                             onClick={() => {
                               const material = (document.getElementById("material") as HTMLInputElement).value;
                               const groupIdSelect = document.querySelector('select[id^="radix-:"]') as HTMLSelectElement;
-                              const groupId = groupIdSelect ? Number(groupIdSelect.value) : null;
+                              const groupId = groupIdSelect && groupIdSelect.value !== "none" ? Number(groupIdSelect.value) : null;
                               const diameter = Number((document.getElementById("diameter") as HTMLInputElement).value);
                               const thickness = Number((document.getElementById("thickness") as HTMLInputElement).value);
                               const length = Number((document.getElementById("length") as HTMLInputElement).value);
@@ -830,62 +823,39 @@ export default function AccountPage() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            <TableRow>
-                              <TableCell>Project Number</TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                  Yes
-                                </Badge>
-                              </TableCell>
-                              <TableCell>1</TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon"
-                                    onClick={() => {
-                                      setEditingField({
-                                        id: 1,
-                                        fieldName: "Project Number",
-                                        displayInPlans: true,
-                                        fieldOrder: 1
-                                      });
-                                      setFieldDialogOpen(true);
-                                    }}
-                                  >
-                                    <Pencil className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                            <TableRow>
-                              <TableCell>Client Name</TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                  Yes
-                                </Badge>
-                              </TableCell>
-                              <TableCell>2</TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon"
-                                    onClick={() => {
-                                      setEditingField({
-                                        id: 2,
-                                        fieldName: "Client Name",
-                                        displayInPlans: true,
-                                        fieldOrder: 2
-                                      });
-                                      setFieldDialogOpen(true);
-                                    }}
-                                  >
-                                    <Pencil className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
+                            {customFields && customFields.length > 0 ? (
+                              customFields.map((field) => (
+                                <TableRow key={field.id}>
+                                  <TableCell>{field.fieldName}</TableCell>
+                                  <TableCell>
+                                    <Badge variant="outline" className={field.displayInPlans ? "bg-green-50 text-green-700 border-green-200" : ""}>
+                                      {field.displayInPlans ? "Yes" : "No"}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell>{field.fieldOrder}</TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center gap-2">
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon"
+                                        onClick={() => {
+                                          setEditingField(field);
+                                          setFieldDialogOpen(true);
+                                        }}
+                                      >
+                                        <Pencil className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                            ) : (
+                              <TableRow>
+                                <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
+                                  No custom fields found. Add your first field using the button above.
+                                </TableCell>
+                              </TableRow>
+                            )}
                           </TableBody>
                         </Table>
                       </div>
