@@ -6,9 +6,11 @@ import Stripe from "stripe";
 import { z } from "zod";
 import { insertWorkspaceSchema, insertProjectSchema, insertPipeSpecSchema, insertRequiredCutSchema } from "@shared/schema";
 
-// Initialize Stripe with fallback to test mode if no key provided
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY || "sk_test_example";
-const stripe = new Stripe(stripeSecretKey, {
+// Initialize Stripe
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
+}
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2023-10-16",
 });
 
@@ -528,10 +530,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Create subscription
+      if (!process.env.STRIPE_PRICE_ID) {
+        throw new Error('Missing required Stripe price ID');
+      }
+      
       const subscription = await stripe.subscriptions.create({
         customer: customer.id,
         items: [{
-          price: process.env.STRIPE_PRICE_ID || 'price_1Oy0b02dQHO8UpMb4YwGfHIS', // Fallback for testing
+          price: process.env.STRIPE_PRICE_ID,
         }],
         payment_behavior: 'default_incomplete',
         expand: ['latest_invoice.payment_intent'],
