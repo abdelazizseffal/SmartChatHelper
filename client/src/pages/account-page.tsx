@@ -349,34 +349,8 @@ export default function AccountPage() {
                       <User className="h-4 w-4 mr-2" />
                       Profile
                     </TabsTrigger>
-                    <TabsTrigger
-                      value="subscription"
-                      className="w-full justify-start px-4 py-2 data-[state=active]:bg-muted/50"
-                    >
-                      <CreditCard className="h-4 w-4 mr-2" />
-                      Subscription
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="material-groups"
-                      className="w-full justify-start px-4 py-2 data-[state=active]:bg-muted/50"
-                    >
-                      <Boxes className="h-4 w-4 mr-2" />
-                      Material Groups
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="material-warehouse"
-                      className="w-full justify-start px-4 py-2 data-[state=active]:bg-muted/50"
-                    >
-                      <Package className="h-4 w-4 mr-2" />
-                      Material Warehouse
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="custom-fields"
-                      className="w-full justify-start px-4 py-2 data-[state=active]:bg-muted/50"
-                    >
-                      <Tag className="h-4 w-4 mr-2" />
-                      Custom Fields
-                    </TabsTrigger>
+                    {/* Subscription tab hidden per request */}
+                    {/* Material Groups, Material Warehouse, and Custom Fields tabs hidden per request */}
                     <TabsTrigger
                       value="cutting-plans"
                       className="w-full justify-start px-4 py-2 data-[state=active]:bg-muted/50"
@@ -384,13 +358,7 @@ export default function AccountPage() {
                       <FileText className="h-4 w-4 mr-2" />
                       Cutting Plans
                     </TabsTrigger>
-                    <TabsTrigger
-                      value="settings"
-                      className="w-full justify-start px-4 py-2 data-[state=active]:bg-muted/50"
-                    >
-                      <Settings className="h-4 w-4 mr-2" />
-                      Settings
-                    </TabsTrigger>
+                    {/* Settings tab hidden per request */}
                   </TabsList>
                 </Tabs>
               </CardContent>

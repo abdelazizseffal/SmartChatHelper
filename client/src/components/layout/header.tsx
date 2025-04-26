@@ -62,9 +62,7 @@ export function Header() {
               <Link href="/projects" className={`${location === '/projects' ? 'text-primary border-b-2 border-primary' : 'text-neutral-500 dark:text-neutral-400 hover:text-primary dark:hover:text-primary'} px-1 pt-1 font-medium`}>
                 Projects
               </Link>
-              <Link href="/billing" className={`${location === '/billing' ? 'text-primary border-b-2 border-primary' : 'text-neutral-500 dark:text-neutral-400 hover:text-primary dark:hover:text-primary'} px-1 pt-1 font-medium`}>
-                Billing
-              </Link>
+              {/* Billing link hidden */}
               {user?.role === 'admin' && (
                 <Link href="/admin" className={`${location === '/admin' ? 'text-primary border-b-2 border-primary' : 'text-neutral-500 dark:text-neutral-400 hover:text-primary dark:hover:text-primary'} px-1 pt-1 font-medium`}>
                   Admin
@@ -109,18 +107,8 @@ export function Header() {
                       <span>My Account</span>
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/billing" className="flex items-center cursor-pointer">
-                      <CreditCard className="mr-2 h-4 w-4" />
-                      <span>Billing</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/settings" className="flex items-center cursor-pointer">
-                      <Settings className="mr-2 h-4 w-4" />
-                      <span>Settings</span>
-                    </Link>
-                  </DropdownMenuItem>
+                  {/* Billing dropdown item hidden */}
+                  {/* Settings dropdown item hidden */}
                   {user?.role === 'admin' && (
                     <DropdownMenuItem asChild>
                       <Link href="/admin" className="flex items-center cursor-pointer">
@@ -157,9 +145,7 @@ export function Header() {
                     <Link href="/account" className={`${location === '/account' ? 'bg-primary text-white' : 'text-neutral-500 dark:text-neutral-400 hover:bg-primary-50 dark:hover:bg-primary-900 hover:text-primary'} block px-3 py-2 rounded-md text-base font-medium`}>
                       My Account
                     </Link>
-                    <Link href="/billing" className={`${location === '/billing' ? 'bg-primary text-white' : 'text-neutral-500 dark:text-neutral-400 hover:bg-primary-50 dark:hover:bg-primary-900 hover:text-primary'} block px-3 py-2 rounded-md text-base font-medium`}>
-                      Billing
-                    </Link>
+                    {/* Billing mobile link hidden */}
                     {user?.role === 'admin' && (
                       <Link href="/admin" className={`${location === '/admin' ? 'bg-primary text-white' : 'text-neutral-500 dark:text-neutral-400 hover:bg-primary-50 dark:hover:bg-primary-900 hover:text-primary'} block px-3 py-2 rounded-md text-base font-medium`}>
                         Admin
