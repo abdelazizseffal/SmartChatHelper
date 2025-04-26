@@ -3,8 +3,7 @@ import { Header } from "@/components/layout/header";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { loadStripe } from "@stripe/stripe-js";
-import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { CustomPaymentForm } from "@/components/payment/custom-payment-form";
 import {
   CreditCard,
   CheckCircle,
@@ -22,72 +21,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 
-// Make sure to call `loadStripe` outside of a component's render
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || "");
-
-function SubscriptionForm() {
-  const stripe = useStripe();
-  const elements = useElements();
-  const { toast } = useToast();
-  const [isProcessing, setIsProcessing] = useState(false);
-  
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!stripe || !elements) {
-      toast({
-        title: "Error",
-        description: "Stripe has not loaded yet. Please try again.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setIsProcessing(true);
-    
-    try {
-      const { error } = await stripe.confirmPayment({
-        elements,
-        confirmParams: {
-          return_url: window.location.origin + "/billing?success=true",
-        },
-      });
-      
-      if (error) {
-        toast({
-          title: "Payment Failed",
-          description: error.message || "An unknown error occurred",
-          variant: "destructive",
-        });
-      }
-    } catch (err: any) {
-      toast({
-        title: "Error",
-        description: err.message || "An unknown error occurred",
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-  
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <PaymentElement />
-      <Button 
-        type="submit" 
-        className="w-full" 
-        disabled={!stripe || isProcessing}
-      >
-        {isProcessing ? (
-          <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</>
-        ) : (
-          <>Subscribe Now</>
-        )}
-      </Button>
-    </form>
-  );
-}
+// Custom payment handling
 
 export default function BillingPage() {
   const { user } = useAuth();
@@ -123,8 +57,9 @@ export default function BillingPage() {
       return await res.json();
     },
     onSuccess: (data) => {
-      setClientSecret(data.clientSecret);
       setShowPaymentForm(true);
+      // Store the subscription ID and amount for the payment form
+      setClientSecret(data.subscriptionId);
     },
     onError: (error) => {
       toast({
@@ -262,18 +197,25 @@ export default function BillingPage() {
           </div>
         ) : (
           <div className="space-y-8">
-            {showPaymentForm && clientSecret ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Complete Your Subscription</CardTitle>
-                  <CardDescription>Enter your payment details to subscribe to the {selectedPlan === "pro" ? "Pro" : "Basic"} plan</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Elements stripe={stripePromise} options={{ clientSecret }}>
-                    <SubscriptionForm />
-                  </Elements>
-                </CardContent>
-              </Card>
+            {showPaymentForm ? (
+              <CustomPaymentForm 
+                planId={selectedPlan}
+                amount={selectedPlan === "basic" ? 14.99 : 29.99}
+                onSuccess={() => {
+                  toast({
+                    title: "Subscription Created",
+                    description: "Your subscription has been successfully created",
+                    variant: "default",
+                  });
+                  
+                  // Invalidate user subscription query to refresh the data
+                  queryClient.invalidateQueries({ queryKey: ["/api/users", user?.id, "subscription"] });
+                  
+                  // Redirect to success page or show success message
+                  window.location.href = "/billing?success=true";
+                }}
+                onCancel={() => setShowPaymentForm(false)}
+              />
             ) : (
               <>
                 <div className="text-center max-w-3xl mx-auto">
