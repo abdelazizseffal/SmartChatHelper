@@ -29,7 +29,10 @@ import {
   Pencil,
   Plus,
   Save,
-  X
+  X,
+  Ruler,
+  MoveHorizontal,
+  Loader2
 } from "lucide-react";
 import SubscriptionManagement from "@/components/account/subscription-management";
 import { Button } from "@/components/ui/button";
@@ -45,6 +48,8 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -266,6 +271,9 @@ export default function AccountPage() {
     onSuccess: (data) => {
       if (data?.measurementFormat) {
         setMeasurementFormat(data.measurementFormat);
+      }
+      if (data?.canUsePipeCuttingOptimization !== undefined) {
+        setCanUsePipeCuttingOptimization(data.canUsePipeCuttingOptimization);
       }
     }
   });
@@ -1135,8 +1143,28 @@ export default function AccountPage() {
                           </RadioGroup>
                         </div>
                         
+                        <Separator className="my-6" />
+                        
+                        <h3 className="text-lg font-medium mb-3">Feature Settings</h3>
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                              <Label className="text-base">
+                                Pipe Cutting Optimization
+                              </Label>
+                              <p className="text-sm text-muted-foreground">
+                                Use the intelligent algorithm to optimize pipe cutting and minimize waste
+                              </p>
+                            </div>
+                            <Switch
+                              checked={canUsePipeCuttingOptimization}
+                              onCheckedChange={setCanUsePipeCuttingOptimization}
+                            />
+                          </div>
+                        </div>
+                        
                         <Button 
-                          className="mt-2" 
+                          className="mt-6" 
                           onClick={saveUserSettings}
                           disabled={savingSettings}
                         >
