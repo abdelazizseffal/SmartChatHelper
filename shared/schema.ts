@@ -136,6 +136,7 @@ export const subscriptions = pgTable("subscriptions", {
   userId: integer("user_id").notNull(),
   planId: text("plan_id").notNull(),
   status: text("status").notNull(),
+  paymentMethod: text("payment_method"),
   currentPeriodStart: timestamp("current_period_start").notNull(),
   currentPeriodEnd: timestamp("current_period_end").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -145,6 +146,7 @@ export const insertSubscriptionSchema = createInsertSchema(subscriptions).pick({
   userId: true,
   planId: true,
   status: true,
+  paymentMethod: true,
   currentPeriodStart: true,
   currentPeriodEnd: true,
 });

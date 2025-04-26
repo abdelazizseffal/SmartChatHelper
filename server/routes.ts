@@ -511,62 +511,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/create-subscription', isAuthenticated, async (req, res) => {
     try {
       const user = req.user;
-      let customer;
+      const { planId } = req.body;
       
-      // Create or retrieve customer
-      if (user.stripeCustomerId) {
-        customer = await stripe.customers.retrieve(user.stripeCustomerId);
-      } else {
-        customer = await stripe.customers.create({
-          email: user.email,
-          name: user.username,
-        });
-        
-        // Save customer ID to user
-        await storage.updateUserStripeInfo(user.id, {
-          customerId: customer.id,
-          subscriptionId: user.stripeSubscriptionId || ''
-        });
-      }
-      
-      // Create subscription
-      if (!process.env.STRIPE_PRICE_ID) {
-        throw new Error('Missing required Stripe price ID');
-      }
-      
-      const subscription = await stripe.subscriptions.create({
-        customer: customer.id,
-        items: [{
-          price: process.env.STRIPE_PRICE_ID,
-        }],
-        payment_behavior: 'default_incomplete',
-        expand: ['latest_invoice.payment_intent'],
-      });
-      
-      // Save subscription ID to user
-      await storage.updateUserStripeInfo(user.id, {
-        customerId: customer.id,
-        subscriptionId: subscription.id
-      });
-      
-      // Create subscription record
-      await storage.createSubscription({
+      // Create or update subscription with basic info (payment will be processed separately)
+      const subscriptionData = {
         userId: user.id,
-        planId: subscription.items.data[0].price.id,
-        status: subscription.status,
-        currentPeriodStart: new Date(subscription.current_period_start * 1000),
-        currentPeriodEnd: new Date(subscription.current_period_end * 1000)
-      });
+        planId: planId || 'pro', // Default to pro plan if none specified
+        status: 'pending', // Will be updated to 'active' after payment
+        currentPeriodStart: new Date(),
+        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
+      };
       
-      // @ts-ignore - Stripe types are not catching the expanded fields correctly
-      const clientSecret = subscription.latest_invoice?.payment_intent?.client_secret;
+      // Check if user already has a subscription
+      const existingSubscription = await storage.getUserSubscription(user.id);
+      let subscription;
       
+      if (existingSubscription) {
+        // Update existing subscription
+        subscription = await storage.updateSubscription(existingSubscription.id, subscriptionData);
+      } else {
+        // Create new subscription
+        subscription = await storage.createSubscription(subscriptionData);
+      }
+      
+      // Return the subscription data for the frontend
       res.json({
         subscriptionId: subscription.id,
-        clientSecret
+        planId: subscription.planId,
+        amount: planId === 'basic' ? 9.99 : 29.99 // Set the price based on the plan
       });
     } catch (error: any) {
       res.status(500).json({ message: `Error creating subscription: ${error.message}` });
+    }
+  });
+  
+  // New endpoint to process payments
+  app.post('/api/process-payment', isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      const { paymentMethod, planId, amount, cardDetails } = req.body;
+      
+      // Validate required fields
+      if (!paymentMethod || !planId || !amount) {
+        return res.status(400).json({ message: 'Missing required payment information' });
+      }
+      
+      // For credit card payments, validate card details
+      if (paymentMethod === 'credit-card') {
+        if (!cardDetails || !cardDetails.cardNumber || !cardDetails.cardHolderName || 
+            !cardDetails.expiryDate || !cardDetails.cvv) {
+          return res.status(400).json({ message: 'Missing required card details' });
+        }
+      }
+      
+      // In a real implementation, we would process the payment with a payment gateway
+      // For this demo, we'll simulate a successful payment
+      
+      // Get the user's subscription
+      const subscription = await storage.getUserSubscription(user.id);
+      if (!subscription) {
+        return res.status(404).json({ message: 'No pending subscription found' });
+      }
+      
+      // Update subscription status to active
+      await storage.updateSubscription(subscription.id, {
+        status: 'active',
+        paymentMethod: paymentMethod
+      });
+      
+      // Record the payment details (in a real app, this would be in a separate payments table)
+      console.log(`Payment processed for user ${user.id}: ${amount} via ${paymentMethod}`);
+      
+      // Return success response
+      res.json({ 
+        success: true,
+        subscription: await storage.getUserSubscription(user.id)
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: `Payment processing failed: ${error.message}` });
     }
   });
   
