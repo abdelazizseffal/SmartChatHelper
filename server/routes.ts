@@ -4,7 +4,13 @@ import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import Stripe from "stripe";
 import { z } from "zod";
-import { insertWorkspaceSchema, insertProjectSchema, insertPipeSpecSchema, insertRequiredCutSchema } from "@shared/schema";
+import { 
+  insertWorkspaceSchema, 
+  insertProjectSchema, 
+  insertPipeSpecSchema, 
+  insertRequiredCutSchema,
+  insertSubscriptionPlanSchema
+} from "@shared/schema";
 import { runOptimization } from "./optimization";
 
 // Initialize Stripe
