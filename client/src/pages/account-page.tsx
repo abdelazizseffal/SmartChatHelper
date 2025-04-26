@@ -257,6 +257,51 @@ export default function AccountPage() {
   // Material Groups state and handlers
   const [groupDialogOpen, setGroupDialogOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<any>(null);
+  
+  // User Settings queries and mutations
+  const { data: userSettings } = useQuery<any>({
+    queryKey: ["/api/user-settings"],
+    enabled: !!user,
+    onSuccess: (data) => {
+      if (data?.measurementFormat) {
+        setMeasurementFormat(data.measurementFormat);
+      }
+    }
+  });
+  
+  const updateUserSettingsMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest(
+        "PATCH", 
+        "/api/user-settings", 
+        data
+      );
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Settings updated successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/user-settings"] });
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: "Failed to update settings", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    }
+  });
+  
+  // Function to save user settings
+  const saveUserSettings = () => {
+    setSavingSettings(true);
+    updateUserSettingsMutation.mutate({
+      measurementFormat
+    }, {
+      onSettled: () => {
+        setSavingSettings(false);
+      }
+    });
+  };
 
   if (isLoading) {
     return <div className="flex justify-center p-20">
@@ -1108,13 +1153,6 @@ export default function AccountPage() {
                       </div>
                       
                       {/* Other setting sections will go here */}
-                      
-                      <div className="flex justify-end pt-4">
-                        <Button>
-                          <Save className="w-4 h-4 mr-2" />
-                          Save Settings
-                        </Button>
-                      </div>
                     </div>
                   </CardContent>
                 </Card>
