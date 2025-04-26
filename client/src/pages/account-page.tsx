@@ -134,9 +134,113 @@ export default function AccountPage() {
     }
   });
   
+  // Material Warehouse queries and mutations
+  const { data: materials, refetch: refetchMaterials } = useQuery<any[]>({
+    queryKey: ["/api/workspaces", workspaceId, "material-warehouse"],
+    enabled: !!workspaceId
+  });
+  
+  const createMaterialMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest(
+        "POST", 
+        `/api/workspaces/${workspaceId}/material-warehouse`, 
+        data
+      );
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Material added successfully" });
+      setMaterialDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/workspaces", workspaceId, "material-warehouse"] });
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: "Failed to add material", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    }
+  });
+  
+  const updateMaterialMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest(
+        "PATCH", 
+        `/api/material-warehouse/${data.id}`, 
+        data
+      );
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Material updated successfully" });
+      setMaterialDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/workspaces", workspaceId, "material-warehouse"] });
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: "Failed to update material", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    }
+  });
+  
   // Material Warehouse state and handlers
   const [materialDialogOpen, setMaterialDialogOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<any>(null);
+  
+  // Custom Fields queries and mutations
+  const { data: customFields, refetch: refetchCustomFields } = useQuery<any[]>({
+    queryKey: ["/api/workspaces", workspaceId, "custom-text-fields"],
+    enabled: !!workspaceId
+  });
+  
+  const createCustomFieldMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest(
+        "POST", 
+        `/api/workspaces/${workspaceId}/custom-text-fields`, 
+        data
+      );
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Custom field added successfully" });
+      setFieldDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/workspaces", workspaceId, "custom-text-fields"] });
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: "Failed to add custom field", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    }
+  });
+  
+  const updateCustomFieldMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest(
+        "PATCH", 
+        `/api/custom-text-fields/${data.id}`, 
+        data
+      );
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Custom field updated successfully" });
+      setFieldDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/workspaces", workspaceId, "custom-text-fields"] });
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: "Failed to update custom field", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    }
+  });
   
   // Custom Fields state and handlers
   const [fieldDialogOpen, setFieldDialogOpen] = useState(false);
@@ -413,11 +517,32 @@ export default function AccountPage() {
                           </Button>
                           <Button 
                             onClick={() => {
-                              setGroupDialogOpen(false);
-                              toast({
-                                title: editingGroup ? "Group updated" : "Group added",
-                                description: "Your changes have been saved successfully.",
-                              });
+                              const name = (document.getElementById("group-name") as HTMLInputElement).value;
+                              const description = (document.getElementById("description") as HTMLTextAreaElement).value;
+                              
+                              if (!name) {
+                                toast({
+                                  title: "Group name is required",
+                                  variant: "destructive"
+                                });
+                                return;
+                              }
+                              
+                              if (editingGroup) {
+                                // Update existing group
+                                updateMaterialGroupMutation.mutate({
+                                  id: editingGroup.id,
+                                  name,
+                                  description
+                                });
+                              } else {
+                                // Create new group
+                                createMaterialGroupMutation.mutate({
+                                  name,
+                                  description,
+                                  workspaceId
+                                });
+                              }
                             }}
                           >
                             <Save className="w-4 h-4 mr-2" />
@@ -610,11 +735,57 @@ export default function AccountPage() {
                           </Button>
                           <Button 
                             onClick={() => {
-                              setMaterialDialogOpen(false);
-                              toast({
-                                title: editingMaterial ? "Material updated" : "Material added",
-                                description: "Your changes have been saved successfully.",
-                              });
+                              const material = (document.getElementById("material") as HTMLInputElement).value;
+                              const groupIdSelect = document.querySelector('select[id^="radix-:"]') as HTMLSelectElement;
+                              const groupId = groupIdSelect ? Number(groupIdSelect.value) : null;
+                              const diameter = Number((document.getElementById("diameter") as HTMLInputElement).value);
+                              const thickness = Number((document.getElementById("thickness") as HTMLInputElement).value);
+                              const length = Number((document.getElementById("length") as HTMLInputElement).value);
+                              const statusSelect = document.querySelectorAll('select[id^="radix-:"]')[1] as HTMLSelectElement;
+                              const status = statusSelect ? statusSelect.value : "Available";
+                              const notes = (document.getElementById("notes") as HTMLTextAreaElement).value;
+                              
+                              if (!material) {
+                                toast({
+                                  title: "Material type is required",
+                                  variant: "destructive"
+                                });
+                                return;
+                              }
+                              
+                              if (!diameter || !thickness || !length) {
+                                toast({
+                                  title: "All dimensions are required",
+                                  variant: "destructive"
+                                });
+                                return;
+                              }
+                              
+                              if (editingMaterial) {
+                                // Update existing material
+                                updateMaterialMutation.mutate({
+                                  id: editingMaterial.id,
+                                  material,
+                                  groupId,
+                                  diameter,
+                                  thickness,
+                                  length,
+                                  status,
+                                  notes
+                                });
+                              } else {
+                                // Create new material
+                                createMaterialMutation.mutate({
+                                  material,
+                                  groupId,
+                                  diameter,
+                                  thickness,
+                                  length,
+                                  status,
+                                  notes,
+                                  workspaceId
+                                });
+                              }
                             }}
                           >
                             <Save className="w-4 h-4 mr-2" />
@@ -774,11 +945,35 @@ export default function AccountPage() {
                           </Button>
                           <Button 
                             onClick={() => {
-                              setFieldDialogOpen(false);
-                              toast({
-                                title: editingField ? "Field updated" : "Field added",
-                                description: "Your changes have been saved successfully.",
-                              });
+                              const fieldName = (document.getElementById("field-name") as HTMLInputElement).value;
+                              const fieldOrder = Number((document.getElementById("field-order") as HTMLInputElement).value);
+                              const displayInPlans = (document.getElementById("display-in-plans") as HTMLInputElement).checked;
+                              
+                              if (!fieldName) {
+                                toast({
+                                  title: "Field name is required",
+                                  variant: "destructive"
+                                });
+                                return;
+                              }
+                              
+                              if (editingField) {
+                                // Update existing field
+                                updateCustomFieldMutation.mutate({
+                                  id: editingField.id,
+                                  fieldName,
+                                  fieldOrder,
+                                  displayInPlans
+                                });
+                              } else {
+                                // Create new field
+                                createCustomFieldMutation.mutate({
+                                  fieldName,
+                                  fieldOrder,
+                                  displayInPlans,
+                                  workspaceId
+                                });
+                              }
                             }}
                           >
                             <Save className="w-4 h-4 mr-2" />
