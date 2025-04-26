@@ -71,6 +71,7 @@ export default function AccountPage() {
   const [activeTab, setActiveTab] = useState("profile");
   const [workspaceId, setWorkspaceId] = useState<number | null>(null);
   const [measurementFormat, setMeasurementFormat] = useState("generic");
+  const [canUsePipeCuttingOptimization, setCanUsePipeCuttingOptimization] = useState(true);
   const [savingSettings, setSavingSettings] = useState(false);
   
   // Get the active workspace
@@ -295,7 +296,8 @@ export default function AccountPage() {
   const saveUserSettings = () => {
     setSavingSettings(true);
     updateUserSettingsMutation.mutate({
-      measurementFormat
+      measurementFormat,
+      canUsePipeCuttingOptimization
     }, {
       onSettled: () => {
         setSavingSettings(false);

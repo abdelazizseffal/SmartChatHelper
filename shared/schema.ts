@@ -319,6 +319,7 @@ export const userSettings = pgTable("user_settings", {
   includePartsList: boolean("include_parts_list").default(true).notNull(),
   minRemnantLength: real("min_remnant_length").default(100).notNull(),
   measurementFormat: text("measurement_format").default("generic").notNull(),
+  canUsePipeCuttingOptimization: boolean("can_use_pipe_cutting_optimization").default(true).notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
