@@ -12,8 +12,17 @@ const PipeVisualization = ({ results, stockLength }: PipeVisualizationProps) => 
     return (length / stockLength) * 100;
   };
   
+  // Check if any results are available
+  if (!results || results.length === 0) {
+    return (
+      <div className="flex justify-center items-center h-40 bg-neutral-100 dark:bg-neutral-800 rounded-md">
+        <span className="text-neutral-500 dark:text-neutral-400">No cutting patterns available</span>
+      </div>
+    );
+  }
+
   return (
-    <div className="pipe-visualization">
+    <div className="pipe-visualization" id="pipe-visualization">
       {results.map((pipe, pipeIndex) => (
         <div key={pipeIndex} className="flex items-center mb-6">
           <div className="w-14 text-right pr-2">
@@ -21,32 +30,38 @@ const PipeVisualization = ({ results, stockLength }: PipeVisualizationProps) => 
           </div>
           <div className="flex-grow">
             <div className="pipe h-12 bg-neutral-200 dark:bg-neutral-700 rounded-md relative overflow-hidden">
-              {/* Pipe cut sections */}
-              {pipe.cuts.map((cut, cutIndex) => (
-                <div
-                  key={cutIndex}
-                  className="pipe-cut absolute h-full bg-blue-500 border-r-4 border-neutral-100 dark:border-neutral-800"
-                  style={{
-                    width: `${calculatePercentage(cut.length)}%`,
-                    left: `${calculatePercentage(cut.startPos)}%`,
-                  }}
-                  title={`${cut.length}mm (${cut.startPos}mm - ${cut.endPos}mm)`}
-                >
-                  <div className="h-full flex items-center justify-center overflow-hidden">
-                    {calculatePercentage(cut.length) > 5 && (
-                      <span className="text-xs text-white font-medium truncate px-2">
-                        {cut.length}mm
-                      </span>
-                    )}
+              {/* Pipe cut sections - render each cut piece */}
+              {pipe.cuts.map((cut, cutIndex) => {
+                // Calculate the width and position as percentages
+                const width = calculatePercentage(cut.length);
+                const left = calculatePercentage(cut.startPos);
+                
+                return (
+                  <div
+                    key={cutIndex}
+                    className="pipe-cut absolute h-full bg-blue-500 dark:bg-blue-600 border-r border-neutral-100 dark:border-neutral-800"
+                    style={{
+                      width: `${width}%`,
+                      left: `${left}%`,
+                    }}
+                    title={`${cut.length}mm (${cut.startPos}mm - ${cut.endPos}mm)`}
+                  >
+                    <div className="h-full flex items-center justify-center overflow-hidden">
+                      {width > 5 && (
+                        <span className="text-xs text-white font-medium truncate px-2">
+                          {cut.length}mm
+                        </span>
+                      )}
+                    </div>
+                    {/* Kerf indication */}
+                    <div 
+                      className="absolute right-0 top-0 bottom-0 w-1 bg-neutral-700 dark:bg-neutral-900 opacity-50"
+                    ></div>
                   </div>
-                  {/* Kerf indication */}
-                  <div 
-                    className="absolute right-0 top-0 bottom-0 w-1 bg-neutral-700 dark:bg-neutral-900 opacity-50"
-                  ></div>
-                </div>
-              ))}
+                );
+              })}
               
-              {/* Waste section */}
+              {/* Waste section - render at the end of each pipe if there's waste */}
               {pipe.waste > 0 && (
                 <div
                   className="pipe-waste absolute h-full rounded-r-md"
@@ -68,7 +83,7 @@ const PipeVisualization = ({ results, stockLength }: PipeVisualizationProps) => 
               )}
             </div>
           </div>
-          <div className="w-16 text-left pl-2">
+          <div className="w-20 text-left pl-2">
             <span className={`text-xs font-mono ${pipe.waste === 0 ? 'text-green-600 dark:text-green-500' : pipe.waste > 10 ? 'text-orange-600 dark:text-orange-500' : 'text-neutral-500 dark:text-neutral-400'}`}>
               {pipe.waste}mm waste
             </span>
