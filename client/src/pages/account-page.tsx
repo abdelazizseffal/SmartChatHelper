@@ -351,13 +351,7 @@ export default function AccountPage() {
                     </TabsTrigger>
                     {/* Subscription tab hidden per request */}
                     {/* Material Groups, Material Warehouse, and Custom Fields tabs hidden per request */}
-                    <TabsTrigger
-                      value="cutting-plans"
-                      className="w-full justify-start px-4 py-2 data-[state=active]:bg-muted/50"
-                    >
-                      <FileText className="h-4 w-4 mr-2" />
-                      Cutting Plans
-                    </TabsTrigger>
+                    {/* Cutting Plans tab hidden per request */}
                     {/* Settings tab hidden per request */}
                   </TabsList>
                 </Tabs>
