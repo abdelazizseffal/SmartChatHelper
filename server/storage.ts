@@ -497,7 +497,9 @@ export class MemStorage implements IStorage {
     const newSubscription: Subscription = {
       ...subscription,
       id,
-      createdAt: now
+      createdAt: now,
+      projectsCreated: 0,
+      optimizationsRun: 0
     };
     this.subscriptions.set(id, newSubscription);
     return newSubscription;
@@ -521,6 +523,78 @@ export class MemStorage implements IStorage {
     
     this.subscriptions.set(id, updatedSubscription);
     return updatedSubscription;
+  }
+
+  async incrementProjectCount(userId: number): Promise<Subscription> {
+    const subscription = await this.getUserSubscription(userId);
+    if (!subscription) {
+      throw new Error(`Subscription for user with ID ${userId} not found`);
+    }
+    
+    return this.updateSubscription(subscription.id, {
+      projectsCreated: subscription.projectsCreated + 1
+    });
+  }
+  
+  async incrementOptimizationCount(userId: number): Promise<Subscription> {
+    const subscription = await this.getUserSubscription(userId);
+    if (!subscription) {
+      throw new Error(`Subscription for user with ID ${userId} not found`);
+    }
+    
+    return this.updateSubscription(subscription.id, {
+      optimizationsRun: subscription.optimizationsRun + 1
+    });
+  }
+  
+  // Subscription plan operations
+  async createSubscriptionPlan(plan: InsertSubscriptionPlan): Promise<SubscriptionPlan> {
+    const id = this.subscriptionPlanIdCounter++;
+    const now = new Date();
+    const newSubscriptionPlan: SubscriptionPlan = {
+      ...plan,
+      id,
+      createdAt: now
+    };
+    this.subscriptionPlans.set(id, newSubscriptionPlan);
+    return newSubscriptionPlan;
+  }
+  
+  async getSubscriptionPlan(planId: string): Promise<SubscriptionPlan | undefined> {
+    return Array.from(this.subscriptionPlans.values())
+      .find(plan => plan.planId === planId);
+  }
+  
+  async getSubscriptionPlanById(id: number): Promise<SubscriptionPlan | undefined> {
+    return this.subscriptionPlans.get(id);
+  }
+  
+  async getAllSubscriptionPlans(): Promise<SubscriptionPlan[]> {
+    return Array.from(this.subscriptionPlans.values());
+  }
+  
+  async getActiveSubscriptionPlans(): Promise<SubscriptionPlan[]> {
+    return Array.from(this.subscriptionPlans.values())
+      .filter(plan => plan.active);
+  }
+  
+  async updateSubscriptionPlan(id: number, data: Partial<SubscriptionPlan>): Promise<SubscriptionPlan> {
+    const plan = this.subscriptionPlans.get(id);
+    if (!plan) {
+      throw new Error(`Subscription plan with ID ${id} not found`);
+    }
+    
+    const updatedPlan: SubscriptionPlan = {
+      ...plan,
+      ...data
+    };
+    
+    this.subscriptionPlans.set(id, updatedPlan);
+    return updatedPlan;
+  }
+  
+  async deleteSubscriptionPlan(id: number): Promise<void> {
+    this.subscriptionPlans.delete(id);
   }
 }
 
