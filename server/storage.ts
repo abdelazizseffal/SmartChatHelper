@@ -483,8 +483,8 @@ export class MemStorage implements IStorage {
   }
 }
 
-// Import the revised MySQLStorage class
-import { MySQLStorage } from './mysql-storage-revised';
+// Import the PostgreSQL DatabaseStorage class
+import { DatabaseStorage } from './database-storage';
 
-// Use MySQLStorage instead of DatabaseStorage
-export const storage = new MySQLStorage();
+// Use DatabaseStorage for PostgreSQL
+export const storage = new DatabaseStorage();
