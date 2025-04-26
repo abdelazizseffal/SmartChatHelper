@@ -128,6 +128,7 @@ export default function Dashboard() {
           <OptimizationResults 
             results={optimizationResults}
             loading={optimizeMutation.isPending}
+            pipeSpec={pipeSpec}
           />
         </div>
       </div>

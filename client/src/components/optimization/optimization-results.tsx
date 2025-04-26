@@ -11,15 +11,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { OptimizationResult } from "@/lib/optimization";
+import { OptimizationResult, PipeSpecification } from "@/lib/optimization";
 import PipeVisualization from "./pipe-visualization";
 
 interface OptimizationResultsProps {
   results: OptimizationResult | null | undefined;
   loading: boolean;
+  pipeSpec?: PipeSpecification;
 }
 
-export default function OptimizationResults({ results, loading }: OptimizationResultsProps) {
+export default function OptimizationResults({ results, loading, pipeSpec }: OptimizationResultsProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const cutItemsPerPage = 10;
   
@@ -151,7 +152,7 @@ export default function OptimizationResults({ results, loading }: OptimizationRe
           
           <PipeVisualization 
             results={results.results} 
-            stockLength={results.parameters ? 100 : 6000} // Use 100 for the test project, or 6000 as a fallback
+            stockLength={pipeSpec ? pipeSpec.length : 100} // Use pipe spec length or default to 100mm
           />
         </div>
         
