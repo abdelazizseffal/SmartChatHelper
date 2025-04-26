@@ -8,7 +8,13 @@ import {
   pipeSpecs, PipeSpec, InsertPipeSpec,
   requiredCuts, RequiredCut, InsertRequiredCut,
   optimizationResults, OptimizationResult, InsertOptimizationResult,
-  subscriptions, Subscription, InsertSubscription 
+  subscriptions, Subscription, InsertSubscription,
+  subscriptionPlans, SubscriptionPlan, InsertSubscriptionPlan,
+  materialGroups, MaterialGroup, InsertMaterialGroup,
+  materialWarehouse, MaterialWarehouseItem, InsertMaterialWarehouseItem,
+  customTextFields, CustomTextField, InsertCustomTextField,
+  cuttingPlans, CuttingPlan, InsertCuttingPlan,
+  userSettings, UserSettings, InsertUserSettings
 } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
@@ -275,5 +281,218 @@ export class DatabaseStorage implements IStorage {
       .where(eq(subscriptions.id, id))
       .returning();
     return updatedSubscription;
+  }
+
+  async incrementProjectCount(userId: number): Promise<Subscription> {
+    const subscription = await this.getUserSubscription(userId);
+    if (!subscription) {
+      throw new Error(`Subscription for user with ID ${userId} not found`);
+    }
+    
+    const [updatedSubscription] = await db.update(subscriptions)
+      .set({
+        projectsCreated: subscription.projectsCreated + 1
+      })
+      .where(eq(subscriptions.id, subscription.id))
+      .returning();
+    
+    return updatedSubscription;
+  }
+  
+  async incrementOptimizationCount(userId: number): Promise<Subscription> {
+    const subscription = await this.getUserSubscription(userId);
+    if (!subscription) {
+      throw new Error(`Subscription for user with ID ${userId} not found`);
+    }
+    
+    const [updatedSubscription] = await db.update(subscriptions)
+      .set({
+        optimizationsRun: subscription.optimizationsRun + 1
+      })
+      .where(eq(subscriptions.id, subscription.id))
+      .returning();
+    
+    return updatedSubscription;
+  }
+
+  // Subscription Plan operations
+  async createSubscriptionPlan(plan: InsertSubscriptionPlan): Promise<SubscriptionPlan> {
+    const [newPlan] = await db.insert(subscriptionPlans).values(plan).returning();
+    return newPlan;
+  }
+
+  async getSubscriptionPlan(planId: string): Promise<SubscriptionPlan | undefined> {
+    const [plan] = await db.select().from(subscriptionPlans).where(eq(subscriptionPlans.planId, planId));
+    return plan;
+  }
+
+  async getSubscriptionPlanById(id: number): Promise<SubscriptionPlan | undefined> {
+    const [plan] = await db.select().from(subscriptionPlans).where(eq(subscriptionPlans.id, id));
+    return plan;
+  }
+
+  async getSubscriptionPlanByPlanId(planId: string): Promise<SubscriptionPlan | undefined> {
+    const [plan] = await db.select().from(subscriptionPlans).where(eq(subscriptionPlans.planId, planId));
+    return plan;
+  }
+
+  async getAllSubscriptionPlans(): Promise<SubscriptionPlan[]> {
+    return await db.select().from(subscriptionPlans);
+  }
+
+  async getActiveSubscriptionPlans(): Promise<SubscriptionPlan[]> {
+    return await db.select().from(subscriptionPlans).where(eq(subscriptionPlans.active, true));
+  }
+
+  async updateSubscriptionPlan(id: number, data: Partial<SubscriptionPlan>): Promise<SubscriptionPlan> {
+    const [updatedPlan] = await db.update(subscriptionPlans)
+      .set(data)
+      .where(eq(subscriptionPlans.id, id))
+      .returning();
+    return updatedPlan;
+  }
+
+  async deleteSubscriptionPlan(id: number): Promise<void> {
+    await db.delete(subscriptionPlans).where(eq(subscriptionPlans.id, id));
+  }
+
+  // Material Group operations
+  async createMaterialGroup(group: InsertMaterialGroup): Promise<MaterialGroup> {
+    const [newGroup] = await db.insert(materialGroups).values(group).returning();
+    return newGroup;
+  }
+
+  async getMaterialGroup(id: number): Promise<MaterialGroup | undefined> {
+    const [group] = await db.select().from(materialGroups).where(eq(materialGroups.id, id));
+    return group;
+  }
+
+  async getWorkspaceMaterialGroups(workspaceId: number): Promise<MaterialGroup[]> {
+    return await db.select().from(materialGroups).where(eq(materialGroups.workspaceId, workspaceId));
+  }
+
+  async updateMaterialGroup(id: number, data: Partial<MaterialGroup>): Promise<MaterialGroup> {
+    const [updatedGroup] = await db.update(materialGroups)
+      .set(data)
+      .where(eq(materialGroups.id, id))
+      .returning();
+    return updatedGroup;
+  }
+
+  async deleteMaterialGroup(id: number): Promise<void> {
+    await db.delete(materialGroups).where(eq(materialGroups.id, id));
+  }
+
+  // Material Warehouse operations
+  async createMaterialWarehouseItem(item: InsertMaterialWarehouseItem): Promise<MaterialWarehouseItem> {
+    const [newItem] = await db.insert(materialWarehouse).values(item).returning();
+    return newItem;
+  }
+
+  async getMaterialWarehouseItem(id: number): Promise<MaterialWarehouseItem | undefined> {
+    const [item] = await db.select().from(materialWarehouse).where(eq(materialWarehouse.id, id));
+    return item;
+  }
+
+  async getWorkspaceMaterialWarehouse(workspaceId: number): Promise<MaterialWarehouseItem[]> {
+    return await db.select().from(materialWarehouse).where(eq(materialWarehouse.workspaceId, workspaceId));
+  }
+
+  async updateMaterialWarehouseItem(id: number, data: Partial<MaterialWarehouseItem>): Promise<MaterialWarehouseItem> {
+    const [updatedItem] = await db.update(materialWarehouse)
+      .set(data)
+      .where(eq(materialWarehouse.id, id))
+      .returning();
+    return updatedItem;
+  }
+
+  async deleteMaterialWarehouseItem(id: number): Promise<void> {
+    await db.delete(materialWarehouse).where(eq(materialWarehouse.id, id));
+  }
+
+  // Custom Text Fields operations
+  async createCustomTextField(field: InsertCustomTextField): Promise<CustomTextField> {
+    const [newField] = await db.insert(customTextFields).values(field).returning();
+    return newField;
+  }
+
+  async getCustomTextField(id: number): Promise<CustomTextField | undefined> {
+    const [field] = await db.select().from(customTextFields).where(eq(customTextFields.id, id));
+    return field;
+  }
+
+  async getWorkspaceCustomTextFields(workspaceId: number): Promise<CustomTextField[]> {
+    return await db.select().from(customTextFields).where(eq(customTextFields.workspaceId, workspaceId));
+  }
+
+  async updateCustomTextField(id: number, data: Partial<CustomTextField>): Promise<CustomTextField> {
+    const [updatedField] = await db.update(customTextFields)
+      .set(data)
+      .where(eq(customTextFields.id, id))
+      .returning();
+    return updatedField;
+  }
+
+  async deleteCustomTextField(id: number): Promise<void> {
+    await db.delete(customTextFields).where(eq(customTextFields.id, id));
+  }
+
+  // Cutting Plan operations
+  async createCuttingPlan(plan: InsertCuttingPlan): Promise<CuttingPlan> {
+    const [newPlan] = await db.insert(cuttingPlans).values(plan).returning();
+    return newPlan;
+  }
+
+  async getCuttingPlan(id: number): Promise<CuttingPlan | undefined> {
+    const [plan] = await db.select().from(cuttingPlans).where(eq(cuttingPlans.id, id));
+    return plan;
+  }
+
+  async getWorkspaceCuttingPlans(workspaceId: number): Promise<CuttingPlan[]> {
+    return await db.select().from(cuttingPlans).where(eq(cuttingPlans.workspaceId, workspaceId));
+  }
+
+  async updateCuttingPlan(id: number, data: Partial<CuttingPlan>): Promise<CuttingPlan> {
+    const [updatedPlan] = await db.update(cuttingPlans)
+      .set(data)
+      .where(eq(cuttingPlans.id, id))
+      .returning();
+    return updatedPlan;
+  }
+
+  async deleteCuttingPlan(id: number): Promise<void> {
+    await db.delete(cuttingPlans).where(eq(cuttingPlans.id, id));
+  }
+
+  // User Settings operations
+  async getUserSettings(userId: number): Promise<UserSettings | undefined> {
+    const [settings] = await db.select().from(userSettings).where(eq(userSettings.userId, userId));
+    return settings;
+  }
+
+  async createOrUpdateUserSettings(settings: InsertUserSettings): Promise<UserSettings> {
+    // Check if settings already exist for this user
+    const existingSettings = await this.getUserSettings(settings.userId);
+    
+    if (existingSettings) {
+      // Update existing settings
+      const [updatedSettings] = await db.update(userSettings)
+        .set({
+          ...settings,
+          updatedAt: new Date()
+        })
+        .where(eq(userSettings.userId, settings.userId))
+        .returning();
+      return updatedSettings;
+    } else {
+      // Create new settings
+      const [newSettings] = await db.insert(userSettings)
+        .values({
+          ...settings,
+          updatedAt: new Date()
+        })
+        .returning();
+      return newSettings;
+    }
   }
 }
