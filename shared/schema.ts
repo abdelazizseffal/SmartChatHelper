@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb, real, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, real, primaryKey, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -318,6 +318,7 @@ export const userSettings = pgTable("user_settings", {
   showAdditionalInfo: boolean("show_additional_info").default(true).notNull(),
   includePartsList: boolean("include_parts_list").default(true).notNull(),
   minRemnantLength: real("min_remnant_length").default(100).notNull(),
+  measurementFormat: text("measurement_format").default("generic").notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 

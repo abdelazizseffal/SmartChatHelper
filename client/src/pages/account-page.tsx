@@ -44,6 +44,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
@@ -69,6 +70,8 @@ export default function AccountPage() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("profile");
   const [workspaceId, setWorkspaceId] = useState<number | null>(null);
+  const [measurementFormat, setMeasurementFormat] = useState("generic");
+  const [savingSettings, setSavingSettings] = useState(false);
   
   // Get the active workspace
   const { data: workspaces } = useQuery<any[]>({
@@ -1053,10 +1056,65 @@ export default function AccountPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-center py-10">
-                      <p className="text-muted-foreground mb-4">
-                        Settings management coming soon
-                      </p>
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="text-lg font-medium mb-3">Measurement Format</h3>
+                        <div className="mb-6">
+                          <RadioGroup 
+                            defaultValue="generic"
+                            className="space-y-3"
+                            onValueChange={(value) => setMeasurementFormat(value)}
+                          >
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="generic" id="generic" />
+                              <Label htmlFor="generic">Generic/Metric (15.75)</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="decimal-inches" id="decimal-inches" />
+                              <Label htmlFor="decimal-inches">Decimal inches (15.75")</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="decimal-feet-inches" id="decimal-feet-inches" />
+                              <Label htmlFor="decimal-feet-inches">Decimal feet & inches (1' 3.75")</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="fractional-inches" id="fractional-inches" />
+                              <Label htmlFor="fractional-inches">Fractional inches (15 3/4")</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="fractional-feet-inches" id="fractional-feet-inches" />
+                              <Label htmlFor="fractional-feet-inches">Fractional feet & inches (1' 3 3/4")</Label>
+                            </div>
+                          </RadioGroup>
+                        </div>
+                        
+                        <Button 
+                          className="mt-2" 
+                          onClick={saveUserSettings}
+                          disabled={savingSettings}
+                        >
+                          {savingSettings ? (
+                            <>
+                              <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full mr-2"></div>
+                              Saving...
+                            </>
+                          ) : (
+                            <>
+                              <Save className="w-4 h-4 mr-2" />
+                              Save Settings
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                      
+                      {/* Other setting sections will go here */}
+                      
+                      <div className="flex justify-end pt-4">
+                        <Button>
+                          <Save className="w-4 h-4 mr-2" />
+                          Save Settings
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
