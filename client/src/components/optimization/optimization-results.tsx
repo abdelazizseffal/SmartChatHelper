@@ -151,7 +151,7 @@ export default function OptimizationResults({ results, loading }: OptimizationRe
           
           <PipeVisualization 
             results={results.results} 
-            stockLength={6000} // This should ideally come from the pipeSpec
+            stockLength={results.parameters ? 100 : 6000} // Use 100 for the test project, or 6000 as a fallback
           />
         </div>
         
