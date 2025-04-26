@@ -24,7 +24,10 @@ import {
   Package,
   Tag,
   FileText,
-  Pencil
+  Pencil,
+  Plus,
+  Save,
+  X
 } from "lucide-react";
 import SubscriptionManagement from "@/components/account/subscription-management";
 import { Button } from "@/components/ui/button";
@@ -46,10 +49,34 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function AccountPage() {
   const { user, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState("profile");
+  
+  // Material Warehouse state and handlers
+  const [materialDialogOpen, setMaterialDialogOpen] = useState(false);
+  const [editingMaterial, setEditingMaterial] = useState(null);
+  
+  // Custom Fields state and handlers
+  const [fieldDialogOpen, setFieldDialogOpen] = useState(false);
+  const [editingField, setEditingField] = useState(null);
+  
+  // Material Groups state and handlers
+  const [groupDialogOpen, setGroupDialogOpen] = useState(false);
+  const [editingGroup, setEditingGroup] = useState(null);
 
   if (isLoading) {
     return <div className="flex justify-center p-20">
@@ -196,8 +223,11 @@ export default function AccountPage() {
                     <div className="space-y-4">
                       <div className="flex justify-between items-center">
                         <h3 className="text-lg font-medium">Material Groups</h3>
-                        <Button size="sm">
-                          <Boxes className="h-4 w-4 mr-2" />
+                        <Button size="sm" onClick={() => {
+                          setEditingGroup(null);
+                          setGroupDialogOpen(true);
+                        }}>
+                          <Plus className="h-4 w-4 mr-2" />
                           Add Group
                         </Button>
                       </div>
@@ -219,7 +249,18 @@ export default function AccountPage() {
                               <TableCell>3</TableCell>
                               <TableCell>
                                 <div className="flex items-center gap-2">
-                                  <Button variant="ghost" size="icon">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
+                                    onClick={() => {
+                                      setEditingGroup({
+                                        id: 1,
+                                        name: "Standard Pipes",
+                                        description: "Common standard pipes and materials"
+                                      });
+                                      setGroupDialogOpen(true);
+                                    }}
+                                  >
                                     <Pencil className="h-4 w-4" />
                                   </Button>
                                 </div>
@@ -231,7 +272,18 @@ export default function AccountPage() {
                               <TableCell>1</TableCell>
                               <TableCell>
                                 <div className="flex items-center gap-2">
-                                  <Button variant="ghost" size="icon">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
+                                    onClick={() => {
+                                      setEditingGroup({
+                                        id: 2,
+                                        name: "Special Alloys",
+                                        description: "Special stainless and high-grade alloy materials"
+                                      });
+                                      setGroupDialogOpen(true);
+                                    }}
+                                  >
                                     <Pencil className="h-4 w-4" />
                                   </Button>
                                 </div>
@@ -241,6 +293,72 @@ export default function AccountPage() {
                         </Table>
                       </div>
                     </div>
+                    
+                    {/* Material Group Dialog */}
+                    <Dialog open={groupDialogOpen} onOpenChange={setGroupDialogOpen}>
+                      <DialogContent className="sm:max-w-[450px]">
+                        <DialogHeader>
+                          <DialogTitle>
+                            {editingGroup ? 'Edit Material Group' : 'Add New Material Group'}
+                          </DialogTitle>
+                          <DialogDescription>
+                            Create material groups to better organize your inventory.
+                          </DialogDescription>
+                        </DialogHeader>
+                        
+                        <div className="grid gap-4 py-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="group-name">Group Name</Label>
+                            <Input 
+                              id="group-name" 
+                              placeholder="e.g. Standard Pipes, Special Alloys, etc." 
+                              defaultValue={editingGroup?.name || ""}
+                            />
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="description">Description (Optional)</Label>
+                            <Textarea 
+                              id="description" 
+                              placeholder="Description of this material group"
+                              defaultValue={editingGroup?.description || ""}
+                            />
+                          </div>
+                          
+                          <div className="p-3 bg-muted rounded-md">
+                            <h4 className="text-sm font-medium mb-2">Material Group Usage</h4>
+                            <p className="text-xs text-muted-foreground">
+                              Material groups help organize your inventory and make it easier to find materials when 
+                              creating cutting plans. They can also be used in the optimization algorithm for more 
+                              efficient material usage.
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <DialogFooter>
+                          <Button 
+                            variant="outline" 
+                            onClick={() => setGroupDialogOpen(false)}
+                          >
+                            <X className="w-4 h-4 mr-2" />
+                            Cancel
+                          </Button>
+                          <Button 
+                            onClick={() => {
+                              setGroupDialogOpen(false);
+                              const { toast } = useToast();
+                              toast({
+                                title: editingGroup ? "Group updated" : "Group added",
+                                description: "Your changes have been saved successfully.",
+                              });
+                            }}
+                          >
+                            <Save className="w-4 h-4 mr-2" />
+                            {editingGroup ? 'Save Changes' : 'Add Group'}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -257,8 +375,11 @@ export default function AccountPage() {
                     <div className="space-y-4">
                       <div className="flex justify-between items-center">
                         <h3 className="text-lg font-medium">Material Inventory</h3>
-                        <Button size="sm">
-                          <Package className="h-4 w-4 mr-2" />
+                        <Button size="sm" onClick={() => {
+                          setEditingMaterial(null);
+                          setMaterialDialogOpen(true);
+                        }}>
+                          <Plus className="h-4 w-4 mr-2" />
                           Add Material
                         </Button>
                       </div>
@@ -290,7 +411,23 @@ export default function AccountPage() {
                               </TableCell>
                               <TableCell>
                                 <div className="flex items-center gap-2">
-                                  <Button variant="ghost" size="icon">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
+                                    onClick={() => {
+                                      setEditingMaterial({
+                                        id: 1,
+                                        material: "Carbon Steel",
+                                        diameter: 48.3,
+                                        thickness: 3.2,
+                                        length: 6000,
+                                        groupId: 1,
+                                        status: "Available",
+                                        notes: "Standard EN 10255 pipe"
+                                      });
+                                      setMaterialDialogOpen(true);
+                                    }}
+                                  >
                                     <Pencil className="h-4 w-4" />
                                   </Button>
                                 </div>
@@ -300,6 +437,126 @@ export default function AccountPage() {
                         </Table>
                       </div>
                     </div>
+                    
+                    {/* Material Dialog */}
+                    <Dialog open={materialDialogOpen} onOpenChange={setMaterialDialogOpen}>
+                      <DialogContent className="sm:max-w-[500px]">
+                        <DialogHeader>
+                          <DialogTitle>
+                            {editingMaterial ? 'Edit Material' : 'Add New Material'}
+                          </DialogTitle>
+                          <DialogDescription>
+                            Enter the specifications for this pipe material.
+                          </DialogDescription>
+                        </DialogHeader>
+                        
+                        <div className="grid gap-4 py-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="material">Material Type</Label>
+                              <Input 
+                                id="material" 
+                                placeholder="e.g. Carbon Steel" 
+                                defaultValue={editingMaterial?.material || ""}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="group">Material Group</Label>
+                              <Select defaultValue={editingMaterial?.groupId?.toString() || ""}>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select group" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="1">Standard Pipes</SelectItem>
+                                  <SelectItem value="2">Special Alloys</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="diameter">Diameter (mm)</Label>
+                              <Input 
+                                id="diameter" 
+                                type="number" 
+                                step="0.1"
+                                min="0"
+                                defaultValue={editingMaterial?.diameter?.toString() || ""}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="thickness">Thickness (mm)</Label>
+                              <Input 
+                                id="thickness" 
+                                type="number" 
+                                step="0.1"
+                                min="0"
+                                defaultValue={editingMaterial?.thickness?.toString() || ""}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="length">Length (mm)</Label>
+                              <Input 
+                                id="length" 
+                                type="number" 
+                                step="1"
+                                min="0"
+                                defaultValue={editingMaterial?.length?.toString() || ""}
+                              />
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="status">Status</Label>
+                              <Select defaultValue={editingMaterial?.status || "Available"}>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Available">Available</SelectItem>
+                                  <SelectItem value="In Use">In Use</SelectItem>
+                                  <SelectItem value="Reserved">Reserved</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="notes">Notes</Label>
+                            <Textarea 
+                              id="notes" 
+                              placeholder="Optional notes about this material"
+                              defaultValue={editingMaterial?.notes || ""}
+                            />
+                          </div>
+                        </div>
+                        
+                        <DialogFooter>
+                          <Button 
+                            variant="outline" 
+                            onClick={() => setMaterialDialogOpen(false)}
+                          >
+                            <X className="w-4 h-4 mr-2" />
+                            Cancel
+                          </Button>
+                          <Button 
+                            onClick={() => {
+                              setMaterialDialogOpen(false);
+                              const { toast } = useToast();
+                              toast({
+                                title: editingMaterial ? "Material updated" : "Material added",
+                                description: "Your changes have been saved successfully.",
+                              });
+                            }}
+                          >
+                            <Save className="w-4 h-4 mr-2" />
+                            {editingMaterial ? 'Save Changes' : 'Add Material'}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -316,8 +573,11 @@ export default function AccountPage() {
                     <div className="space-y-4">
                       <div className="flex justify-between items-center">
                         <h3 className="text-lg font-medium">Custom Text Fields</h3>
-                        <Button size="sm">
-                          <Tag className="h-4 w-4 mr-2" />
+                        <Button size="sm" onClick={() => {
+                          setEditingField(null);
+                          setFieldDialogOpen(true);
+                        }}>
+                          <Plus className="h-4 w-4 mr-2" />
                           Add Custom Field
                         </Button>
                       </div>
@@ -343,7 +603,19 @@ export default function AccountPage() {
                               <TableCell>1</TableCell>
                               <TableCell>
                                 <div className="flex items-center gap-2">
-                                  <Button variant="ghost" size="icon">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
+                                    onClick={() => {
+                                      setEditingField({
+                                        id: 1,
+                                        fieldName: "Project Number",
+                                        displayInPlans: true,
+                                        fieldOrder: 1
+                                      });
+                                      setFieldDialogOpen(true);
+                                    }}
+                                  >
                                     <Pencil className="h-4 w-4" />
                                   </Button>
                                 </div>
@@ -359,7 +631,19 @@ export default function AccountPage() {
                               <TableCell>2</TableCell>
                               <TableCell>
                                 <div className="flex items-center gap-2">
-                                  <Button variant="ghost" size="icon">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
+                                    onClick={() => {
+                                      setEditingField({
+                                        id: 2,
+                                        fieldName: "Client Name",
+                                        displayInPlans: true,
+                                        fieldOrder: 2
+                                      });
+                                      setFieldDialogOpen(true);
+                                    }}
+                                  >
                                     <Pencil className="h-4 w-4" />
                                   </Button>
                                 </div>
@@ -369,6 +653,75 @@ export default function AccountPage() {
                         </Table>
                       </div>
                     </div>
+                    
+                    {/* Custom Field Dialog */}
+                    <Dialog open={fieldDialogOpen} onOpenChange={setFieldDialogOpen}>
+                      <DialogContent className="sm:max-w-[450px]">
+                        <DialogHeader>
+                          <DialogTitle>
+                            {editingField ? 'Edit Custom Field' : 'Add New Custom Field'}
+                          </DialogTitle>
+                          <DialogDescription>
+                            Create custom fields to use in your cutting plans.
+                          </DialogDescription>
+                        </DialogHeader>
+                        
+                        <div className="grid gap-4 py-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="field-name">Field Name</Label>
+                            <Input 
+                              id="field-name" 
+                              placeholder="e.g. Project Number, Client Name, etc." 
+                              defaultValue={editingField?.fieldName || ""}
+                            />
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="field-order">Display Order</Label>
+                            <Input 
+                              id="field-order" 
+                              type="number" 
+                              min="1"
+                              defaultValue={editingField?.fieldOrder?.toString() || "1"}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Lower numbers appear first in forms and reports
+                            </p>
+                          </div>
+                          
+                          <div className="flex items-center space-x-2">
+                            <Checkbox 
+                              id="display-in-plans" 
+                              defaultChecked={editingField?.displayInPlans || true}
+                            />
+                            <Label htmlFor="display-in-plans">Display in cutting plans</Label>
+                          </div>
+                        </div>
+                        
+                        <DialogFooter>
+                          <Button 
+                            variant="outline" 
+                            onClick={() => setFieldDialogOpen(false)}
+                          >
+                            <X className="w-4 h-4 mr-2" />
+                            Cancel
+                          </Button>
+                          <Button 
+                            onClick={() => {
+                              setFieldDialogOpen(false);
+                              const { toast } = useToast();
+                              toast({
+                                title: editingField ? "Field updated" : "Field added",
+                                description: "Your changes have been saved successfully.",
+                              });
+                            }}
+                          >
+                            <Save className="w-4 h-4 mr-2" />
+                            {editingField ? 'Save Changes' : 'Add Field'}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
                   </CardContent>
                 </Card>
               </TabsContent>
