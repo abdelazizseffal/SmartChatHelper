@@ -16,7 +16,14 @@ import PipeVisualization from "./pipe-visualization";
 import { useToast } from "@/hooks/use-toast";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
-import 'jspdf-autotable';
+// Import jspdf-autotable explicitly with types
+import "jspdf-autotable";
+// Add the missing type for jsPDF with autoTable
+declare module "jspdf" {
+  interface jsPDF {
+    autoTable: (options: any) => any;
+  }
+}
 
 interface OptimizationResultsProps {
   results: OptimizationResult | null | undefined;
@@ -118,9 +125,12 @@ export default function OptimizationResults({ results, loading, pipeSpec }: Opti
         ['Cut Operations', `${results.cutOperations}`]
       ];
       
-      // @ts-ignore - jsPDF-autoTable types
+      // Variables to track positions
+      let currentY = 40;
+      
+      // Add summary table
       pdf.autoTable({
-        startY: 40,
+        startY: currentY,
         head: [['Metric', 'Value']],
         body: summaryData,
         theme: 'grid',
@@ -128,10 +138,14 @@ export default function OptimizationResults({ results, loading, pipeSpec }: Opti
         margin: { top: 40 }
       });
       
+      // Get the last y position after the table
+      // @ts-ignore - Access internal API
+      currentY = (pdf as any).lastAutoTable.finalY || 100;
+      
       // Pipe specifications
       if (pipeSpec) {
         pdf.setFontSize(14);
-        pdf.text('Pipe Specifications', 14, pdf.autoTable.previous.finalY + 15);
+        pdf.text('Pipe Specifications', 14, currentY + 15);
         
         const pipeSpecData = [
           ['Length', `${pipeSpec.length} mm`],
@@ -141,19 +155,22 @@ export default function OptimizationResults({ results, loading, pipeSpec }: Opti
           ['Quantity', `${pipeSpec.quantity}`]
         ];
         
-        // @ts-ignore - jsPDF-autoTable types
         pdf.autoTable({
-          startY: pdf.autoTable.previous.finalY + 20,
+          startY: currentY + 20,
           head: [['Property', 'Value']],
           body: pipeSpecData,
           theme: 'grid',
           headStyles: { fillColor: [41, 128, 185], textColor: 255 },
         });
+        
+        // Update position
+        // @ts-ignore - Access internal API
+        currentY = (pdf as any).lastAutoTable.finalY || (currentY + 70);
       }
       
       // Add visualization
       pdf.setFontSize(14);
-      pdf.text('Cutting Pattern Visualization', 14, pdf.autoTable.previous.finalY + 15);
+      pdf.text('Cutting Pattern Visualization', 14, currentY + 15);
       
       // Convert visualization to image
       const canvas = await html2canvas(visualizationRef.current);
@@ -164,7 +181,7 @@ export default function OptimizationResults({ results, loading, pipeSpec }: Opti
       const imgHeight = canvas.height * imgWidth / canvas.width;
       
       // Add image to PDF
-      pdf.addImage(imgData, 'PNG', 15, pdf.autoTable.previous.finalY + 20, imgWidth, imgHeight);
+      pdf.addImage(imgData, 'PNG', 15, currentY + 20, imgWidth, imgHeight);
       
       // Add detailed cuts table
       pdf.addPage();
@@ -179,7 +196,6 @@ export default function OptimizationResults({ results, loading, pipeSpec }: Opti
         `${cut.endPos} mm`
       ]);
       
-      // @ts-ignore - jsPDF-autoTable types
       pdf.autoTable({
         startY: 25,
         head: [['Pipe No.', 'Cut Sequence', 'Length (mm)', 'Start Position (mm)', 'End Position (mm)']],
