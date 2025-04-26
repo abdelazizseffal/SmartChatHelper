@@ -260,7 +260,7 @@ export default function AccountPage() {
   
   // User Settings queries and mutations
   const { data: userSettings } = useQuery<any>({
-    queryKey: ["/api/user-settings"],
+    queryKey: ["/api/user/settings"],  // Updated to the correct endpoint
     enabled: !!user,
     onSuccess: (data) => {
       if (data?.measurementFormat) {
@@ -273,14 +273,14 @@ export default function AccountPage() {
     mutationFn: async (data: any) => {
       const res = await apiRequest(
         "PATCH", 
-        "/api/user-settings", 
+        "/api/user-settings",  // This is the new endpoint we created
         data
       );
       return await res.json();
     },
     onSuccess: () => {
       toast({ title: "Settings updated successfully" });
-      queryClient.invalidateQueries({ queryKey: ["/api/user-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/settings"] });  // Updated to match the GET endpoint
     },
     onError: (error: Error) => {
       toast({ 

@@ -1188,6 +1188,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
   });
+  
+  // PATCH endpoint for updating user settings
+  app.patch("/api/user-settings", isAuthenticated, async (req, res) => {
+    try {
+      // We only validate the fields that are provided in the request
+      const validatedData = insertUserSettingsSchema.partial().parse({
+        ...req.body,
+        userId: req.user.id
+      });
+      
+      const settings = await storage.createOrUpdateUserSettings(validatedData);
+      res.status(200).json(settings);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: error.errors[0].message });
+      } else {
+        console.error("Error updating user settings:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    }
+  });
 
   const httpServer = createServer(app);
 
