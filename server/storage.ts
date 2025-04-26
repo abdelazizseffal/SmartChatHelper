@@ -1,5 +1,12 @@
-import { users, workspaces, workspaceMembers, projects, pipeSpecs, requiredCuts, optimizationResults, subscriptions, subscriptionPlans } from "@shared/schema";
-import type { User, InsertUser, Workspace, InsertWorkspace, WorkspaceMember, InsertWorkspaceMember, Project, InsertProject, PipeSpec, InsertPipeSpec, RequiredCut, InsertRequiredCut, OptimizationResult, InsertOptimizationResult, Subscription, InsertSubscription, SubscriptionPlan, InsertSubscriptionPlan } from "@shared/schema";
+import { users, workspaces, workspaceMembers, projects, pipeSpecs, requiredCuts, optimizationResults, subscriptions, subscriptionPlans, materialGroups, materialWarehouse, customTextFields, cuttingPlans, userSettings } from "@shared/schema";
+import type { 
+  User, InsertUser, Workspace, InsertWorkspace, WorkspaceMember, InsertWorkspaceMember, 
+  Project, InsertProject, PipeSpec, InsertPipeSpec, RequiredCut, InsertRequiredCut, 
+  OptimizationResult, InsertOptimizationResult, Subscription, InsertSubscription, 
+  SubscriptionPlan, InsertSubscriptionPlan, MaterialGroup, InsertMaterialGroup,
+  MaterialWarehouseItem, InsertMaterialWarehouseItem, CustomTextField, InsertCustomTextField,
+  CuttingPlan, InsertCuttingPlan, UserSettings, InsertUserSettings
+} from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 
@@ -63,10 +70,43 @@ export interface IStorage {
   createSubscriptionPlan(plan: InsertSubscriptionPlan): Promise<SubscriptionPlan>;
   getSubscriptionPlan(planId: string): Promise<SubscriptionPlan | undefined>;
   getSubscriptionPlanById(id: number): Promise<SubscriptionPlan | undefined>;
+  getSubscriptionPlanByPlanId(planId: string): Promise<SubscriptionPlan | undefined>;
   getAllSubscriptionPlans(): Promise<SubscriptionPlan[]>;
   getActiveSubscriptionPlans(): Promise<SubscriptionPlan[]>;
   updateSubscriptionPlan(id: number, data: Partial<SubscriptionPlan>): Promise<SubscriptionPlan>;
   deleteSubscriptionPlan(id: number): Promise<void>;
+  
+  // Material Group operations
+  createMaterialGroup(group: InsertMaterialGroup): Promise<MaterialGroup>;
+  getMaterialGroup(id: number): Promise<MaterialGroup | undefined>;
+  getWorkspaceMaterialGroups(workspaceId: number): Promise<MaterialGroup[]>;
+  updateMaterialGroup(id: number, data: Partial<MaterialGroup>): Promise<MaterialGroup>;
+  deleteMaterialGroup(id: number): Promise<void>;
+  
+  // Material Warehouse operations
+  createMaterialWarehouseItem(item: InsertMaterialWarehouseItem): Promise<MaterialWarehouseItem>;
+  getMaterialWarehouseItem(id: number): Promise<MaterialWarehouseItem | undefined>;
+  getWorkspaceMaterialWarehouse(workspaceId: number): Promise<MaterialWarehouseItem[]>;
+  updateMaterialWarehouseItem(id: number, data: Partial<MaterialWarehouseItem>): Promise<MaterialWarehouseItem>;
+  deleteMaterialWarehouseItem(id: number): Promise<void>;
+  
+  // Custom Text Fields operations
+  createCustomTextField(field: InsertCustomTextField): Promise<CustomTextField>;
+  getCustomTextField(id: number): Promise<CustomTextField | undefined>;
+  getWorkspaceCustomTextFields(workspaceId: number): Promise<CustomTextField[]>;
+  updateCustomTextField(id: number, data: Partial<CustomTextField>): Promise<CustomTextField>;
+  deleteCustomTextField(id: number): Promise<void>;
+  
+  // Cutting Plan operations
+  createCuttingPlan(plan: InsertCuttingPlan): Promise<CuttingPlan>;
+  getCuttingPlan(id: number): Promise<CuttingPlan | undefined>;
+  getWorkspaceCuttingPlans(workspaceId: number): Promise<CuttingPlan[]>;
+  updateCuttingPlan(id: number, data: Partial<CuttingPlan>): Promise<CuttingPlan>;
+  deleteCuttingPlan(id: number): Promise<void>;
+  
+  // User Settings operations
+  getUserSettings(userId: number): Promise<UserSettings | undefined>;
+  createOrUpdateUserSettings(settings: InsertUserSettings): Promise<UserSettings>;
   
   // Session store
   sessionStore: session.Store;
@@ -82,6 +122,11 @@ export class MemStorage implements IStorage {
   private optimizationResults: Map<number, OptimizationResult>;
   private subscriptions: Map<number, Subscription>;
   private subscriptionPlans: Map<number, SubscriptionPlan>;
+  private materialGroups: Map<number, MaterialGroup> = new Map();
+  private materialWarehouse: Map<number, MaterialWarehouseItem> = new Map();
+  private customTextFields: Map<number, CustomTextField> = new Map();
+  private cuttingPlans: Map<number, CuttingPlan> = new Map();
+  private userSettings: Map<number, UserSettings> = new Map();
   
   sessionStore: session.Store;
   
@@ -94,6 +139,10 @@ export class MemStorage implements IStorage {
   private optimizationResultIdCounter: number = 1;
   private subscriptionIdCounter: number = 1;
   private subscriptionPlanIdCounter: number = 1;
+  private materialGroupIdCounter: number = 1;
+  private materialWarehouseIdCounter: number = 1;
+  private customTextFieldIdCounter: number = 1;
+  private cuttingPlanIdCounter: number = 1;
   
   constructor() {
     this.users = new Map();
@@ -595,6 +644,212 @@ export class MemStorage implements IStorage {
   
   async deleteSubscriptionPlan(id: number): Promise<void> {
     this.subscriptionPlans.delete(id);
+  }
+
+  async getSubscriptionPlanByPlanId(planId: string): Promise<SubscriptionPlan | undefined> {
+    return Array.from(this.subscriptionPlans.values())
+      .find(plan => plan.planId === planId);
+  }
+
+  // Material Group Map and Counter
+  private materialGroups: Map<number, MaterialGroup> = new Map();
+  private materialGroupIdCounter: number = 1;
+
+  // Material Group operations
+  async createMaterialGroup(group: InsertMaterialGroup): Promise<MaterialGroup> {
+    const id = this.materialGroupIdCounter++;
+    const now = new Date();
+    const newGroup: MaterialGroup = {
+      ...group,
+      id,
+      createdAt: now
+    };
+    this.materialGroups.set(id, newGroup);
+    return newGroup;
+  }
+
+  async getMaterialGroup(id: number): Promise<MaterialGroup | undefined> {
+    return this.materialGroups.get(id);
+  }
+
+  async getWorkspaceMaterialGroups(workspaceId: number): Promise<MaterialGroup[]> {
+    return Array.from(this.materialGroups.values())
+      .filter(group => group.workspaceId === workspaceId);
+  }
+
+  async updateMaterialGroup(id: number, data: Partial<MaterialGroup>): Promise<MaterialGroup> {
+    const group = this.materialGroups.get(id);
+    if (!group) {
+      throw new Error(`Material group with ID ${id} not found`);
+    }
+    
+    const updatedGroup: MaterialGroup = {
+      ...group,
+      ...data
+    };
+    
+    this.materialGroups.set(id, updatedGroup);
+    return updatedGroup;
+  }
+
+  async deleteMaterialGroup(id: number): Promise<void> {
+    this.materialGroups.delete(id);
+  }
+
+  // Material Warehouse Map and Counter
+  private materialWarehouse: Map<number, MaterialWarehouseItem> = new Map();
+  private materialWarehouseIdCounter: number = 1;
+
+  // Material Warehouse operations
+  async createMaterialWarehouseItem(item: InsertMaterialWarehouseItem): Promise<MaterialWarehouseItem> {
+    const id = this.materialWarehouseIdCounter++;
+    const now = new Date();
+    const newItem: MaterialWarehouseItem = {
+      ...item,
+      id,
+      createdAt: now
+    };
+    this.materialWarehouse.set(id, newItem);
+    return newItem;
+  }
+
+  async getMaterialWarehouseItem(id: number): Promise<MaterialWarehouseItem | undefined> {
+    return this.materialWarehouse.get(id);
+  }
+
+  async getWorkspaceMaterialWarehouse(workspaceId: number): Promise<MaterialWarehouseItem[]> {
+    return Array.from(this.materialWarehouse.values())
+      .filter(item => item.workspaceId === workspaceId);
+  }
+
+  async updateMaterialWarehouseItem(id: number, data: Partial<MaterialWarehouseItem>): Promise<MaterialWarehouseItem> {
+    const item = this.materialWarehouse.get(id);
+    if (!item) {
+      throw new Error(`Material warehouse item with ID ${id} not found`);
+    }
+    
+    const updatedItem: MaterialWarehouseItem = {
+      ...item,
+      ...data
+    };
+    
+    this.materialWarehouse.set(id, updatedItem);
+    return updatedItem;
+  }
+
+  async deleteMaterialWarehouseItem(id: number): Promise<void> {
+    this.materialWarehouse.delete(id);
+  }
+
+  // Custom Text Fields Map and Counter
+  private customTextFields: Map<number, CustomTextField> = new Map();
+  private customTextFieldIdCounter: number = 1;
+
+  // Custom Text Fields operations
+  async createCustomTextField(field: InsertCustomTextField): Promise<CustomTextField> {
+    const id = this.customTextFieldIdCounter++;
+    const now = new Date();
+    const newField: CustomTextField = {
+      ...field,
+      id,
+      createdAt: now
+    };
+    this.customTextFields.set(id, newField);
+    return newField;
+  }
+
+  async getCustomTextField(id: number): Promise<CustomTextField | undefined> {
+    return this.customTextFields.get(id);
+  }
+
+  async getWorkspaceCustomTextFields(workspaceId: number): Promise<CustomTextField[]> {
+    return Array.from(this.customTextFields.values())
+      .filter(field => field.workspaceId === workspaceId);
+  }
+
+  async updateCustomTextField(id: number, data: Partial<CustomTextField>): Promise<CustomTextField> {
+    const field = this.customTextFields.get(id);
+    if (!field) {
+      throw new Error(`Custom text field with ID ${id} not found`);
+    }
+    
+    const updatedField: CustomTextField = {
+      ...field,
+      ...data
+    };
+    
+    this.customTextFields.set(id, updatedField);
+    return updatedField;
+  }
+
+  async deleteCustomTextField(id: number): Promise<void> {
+    this.customTextFields.delete(id);
+  }
+
+  // Cutting Plans Map and Counter
+  private cuttingPlans: Map<number, CuttingPlan> = new Map();
+  private cuttingPlanIdCounter: number = 1;
+
+  // Cutting Plan operations
+  async createCuttingPlan(plan: InsertCuttingPlan): Promise<CuttingPlan> {
+    const id = this.cuttingPlanIdCounter++;
+    const now = new Date();
+    const newPlan: CuttingPlan = {
+      ...plan,
+      id,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.cuttingPlans.set(id, newPlan);
+    return newPlan;
+  }
+
+  async getCuttingPlan(id: number): Promise<CuttingPlan | undefined> {
+    return this.cuttingPlans.get(id);
+  }
+
+  async getWorkspaceCuttingPlans(workspaceId: number): Promise<CuttingPlan[]> {
+    return Array.from(this.cuttingPlans.values())
+      .filter(plan => plan.workspaceId === workspaceId);
+  }
+
+  async updateCuttingPlan(id: number, data: Partial<CuttingPlan>): Promise<CuttingPlan> {
+    const plan = this.cuttingPlans.get(id);
+    if (!plan) {
+      throw new Error(`Cutting plan with ID ${id} not found`);
+    }
+    
+    const updatedPlan: CuttingPlan = {
+      ...plan,
+      ...data,
+      updatedAt: new Date()
+    };
+    
+    this.cuttingPlans.set(id, updatedPlan);
+    return updatedPlan;
+  }
+
+  async deleteCuttingPlan(id: number): Promise<void> {
+    this.cuttingPlans.delete(id);
+  }
+
+  // User Settings Map
+  private userSettings: Map<number, UserSettings> = new Map();
+
+  // User Settings operations
+  async getUserSettings(userId: number): Promise<UserSettings | undefined> {
+    return this.userSettings.get(userId);
+  }
+
+  async createOrUpdateUserSettings(settings: InsertUserSettings): Promise<UserSettings> {
+    const now = new Date();
+    const userSettings: UserSettings = {
+      ...settings,
+      updatedAt: now
+    };
+    
+    this.userSettings.set(settings.userId, userSettings);
+    return userSettings;
   }
 }
 

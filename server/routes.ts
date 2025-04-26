@@ -650,6 +650,512 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Subscription Plans (Super Admin Only)
+  app.get("/api/subscription-plans", isAuthenticated, async (req, res) => {
+    try {
+      // Only super admin can access all plans
+      if (req.user.role !== "super_admin" && req.user.role !== "admin") {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      
+      const plans = await storage.getAllSubscriptionPlans();
+      res.json(plans);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  app.post("/api/subscription-plans", isAuthenticated, async (req, res) => {
+    try {
+      // Only super admin can create plans
+      if (req.user.role !== "super_admin" && req.user.role !== "admin") {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      
+      const validatedData = insertSubscriptionPlanSchema.parse(req.body);
+      const plan = await storage.createSubscriptionPlan(validatedData);
+      res.status(201).json(plan);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: error.errors[0].message });
+      } else {
+        res.status(500).json({ message: "Internal server error" });
+      }
+    }
+  });
+  
+  app.get("/api/subscription-plans/:id", isAuthenticated, async (req, res) => {
+    try {
+      // Only super admin can access specific plan details
+      if (req.user.role !== "super_admin" && req.user.role !== "admin") {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      
+      const planId = parseInt(req.params.id);
+      const plan = await storage.getSubscriptionPlan(planId);
+      
+      if (!plan) {
+        return res.status(404).json({ message: "Plan not found" });
+      }
+      
+      res.json(plan);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  app.patch("/api/subscription-plans/:id", isAuthenticated, async (req, res) => {
+    try {
+      // Only super admin can update plans
+      if (req.user.role !== "super_admin" && req.user.role !== "admin") {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      
+      const planId = parseInt(req.params.id);
+      const plan = await storage.getSubscriptionPlan(planId);
+      
+      if (!plan) {
+        return res.status(404).json({ message: "Plan not found" });
+      }
+      
+      const updatedPlan = await storage.updateSubscriptionPlan(planId, req.body);
+      res.json(updatedPlan);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: error.errors[0].message });
+      } else {
+        res.status(500).json({ message: "Internal server error" });
+      }
+    }
+  });
+  
+  app.delete("/api/subscription-plans/:id", isAuthenticated, async (req, res) => {
+    try {
+      // Only super admin can delete plans
+      if (req.user.role !== "super_admin" && req.user.role !== "admin") {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      
+      const planId = parseInt(req.params.id);
+      const plan = await storage.getSubscriptionPlan(planId);
+      
+      if (!plan) {
+        return res.status(404).json({ message: "Plan not found" });
+      }
+      
+      await storage.deleteSubscriptionPlan(planId);
+      res.status(204).end();
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Material Groups
+  app.get("/api/workspaces/:workspaceId/material-groups", hasWorkspaceAccess, async (req, res) => {
+    const workspaceId = parseInt(req.params.workspaceId);
+    try {
+      const materialGroups = await storage.getWorkspaceMaterialGroups(workspaceId);
+      res.json(materialGroups);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  app.post("/api/workspaces/:workspaceId/material-groups", hasWorkspaceAccess, async (req, res) => {
+    const workspaceId = parseInt(req.params.workspaceId);
+    try {
+      const validatedData = insertMaterialGroupSchema.parse({
+        ...req.body,
+        workspaceId,
+        createdById: req.user.id
+      });
+      
+      const materialGroup = await storage.createMaterialGroup(validatedData);
+      res.status(201).json(materialGroup);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: error.errors[0].message });
+      } else {
+        res.status(500).json({ message: "Internal server error" });
+      }
+    }
+  });
+  
+  app.delete("/api/material-groups/:id", isAuthenticated, async (req, res) => {
+    const groupId = parseInt(req.params.id);
+    try {
+      const group = await storage.getMaterialGroup(groupId);
+      
+      if (!group) {
+        return res.status(404).json({ message: "Material group not found" });
+      }
+      
+      // Check if user has access to the workspace
+      const workspace = await storage.getWorkspace(group.workspaceId);
+      if (!workspace) {
+        return res.status(404).json({ message: "Workspace not found" });
+      }
+      
+      const members = await storage.getWorkspaceMembers(workspace.id);
+      const userMembership = members.find(member => member.userId === req.user.id);
+      
+      if (!userMembership && req.user.role !== "admin") {
+        return res.status(403).json({ message: "You don't have access to this workspace" });
+      }
+      
+      await storage.deleteMaterialGroup(groupId);
+      res.status(204).end();
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Material Warehouse
+  app.get("/api/workspaces/:workspaceId/material-warehouse", hasWorkspaceAccess, async (req, res) => {
+    const workspaceId = parseInt(req.params.workspaceId);
+    try {
+      const materials = await storage.getWorkspaceMaterialWarehouse(workspaceId);
+      res.json(materials);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  app.post("/api/workspaces/:workspaceId/material-warehouse", hasWorkspaceAccess, async (req, res) => {
+    const workspaceId = parseInt(req.params.workspaceId);
+    try {
+      const validatedData = insertMaterialWarehouseSchema.parse({
+        ...req.body,
+        workspaceId,
+        createdById: req.user.id
+      });
+      
+      const material = await storage.createMaterialWarehouseItem(validatedData);
+      res.status(201).json(material);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: error.errors[0].message });
+      } else {
+        res.status(500).json({ message: "Internal server error" });
+      }
+    }
+  });
+  
+  app.patch("/api/material-warehouse/:id", isAuthenticated, async (req, res) => {
+    const itemId = parseInt(req.params.id);
+    try {
+      const item = await storage.getMaterialWarehouseItem(itemId);
+      
+      if (!item) {
+        return res.status(404).json({ message: "Material not found" });
+      }
+      
+      // Check if user has access to the workspace
+      const workspace = await storage.getWorkspace(item.workspaceId);
+      if (!workspace) {
+        return res.status(404).json({ message: "Workspace not found" });
+      }
+      
+      const members = await storage.getWorkspaceMembers(workspace.id);
+      const userMembership = members.find(member => member.userId === req.user.id);
+      
+      if (!userMembership && req.user.role !== "admin") {
+        return res.status(403).json({ message: "You don't have access to this workspace" });
+      }
+      
+      const updatedItem = await storage.updateMaterialWarehouseItem(itemId, req.body);
+      res.json(updatedItem);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: error.errors[0].message });
+      } else {
+        res.status(500).json({ message: "Internal server error" });
+      }
+    }
+  });
+  
+  app.delete("/api/material-warehouse/:id", isAuthenticated, async (req, res) => {
+    const itemId = parseInt(req.params.id);
+    try {
+      const item = await storage.getMaterialWarehouseItem(itemId);
+      
+      if (!item) {
+        return res.status(404).json({ message: "Material not found" });
+      }
+      
+      // Check if user has access to the workspace
+      const workspace = await storage.getWorkspace(item.workspaceId);
+      if (!workspace) {
+        return res.status(404).json({ message: "Workspace not found" });
+      }
+      
+      const members = await storage.getWorkspaceMembers(workspace.id);
+      const userMembership = members.find(member => member.userId === req.user.id);
+      
+      if (!userMembership && req.user.role !== "admin") {
+        return res.status(403).json({ message: "You don't have access to this workspace" });
+      }
+      
+      await storage.deleteMaterialWarehouseItem(itemId);
+      res.status(204).end();
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Custom Text Fields
+  app.get("/api/workspaces/:workspaceId/custom-text-fields", hasWorkspaceAccess, async (req, res) => {
+    const workspaceId = parseInt(req.params.workspaceId);
+    try {
+      const fields = await storage.getWorkspaceCustomTextFields(workspaceId);
+      res.json(fields);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  app.post("/api/workspaces/:workspaceId/custom-text-fields", hasWorkspaceAccess, async (req, res) => {
+    const workspaceId = parseInt(req.params.workspaceId);
+    try {
+      // Check if user has a premium subscription
+      const subscription = await storage.getUserSubscription(req.user.id);
+      if (!subscription) {
+        return res.status(403).json({ message: "This feature requires a premium subscription" });
+      }
+      
+      const subscriptionPlan = await storage.getSubscriptionPlanByPlanId(subscription.planId);
+      if (subscriptionPlan.price === 0) {
+        return res.status(403).json({ message: "This feature requires a premium subscription" });
+      }
+      
+      const validatedData = insertCustomTextFieldSchema.parse({
+        ...req.body,
+        workspaceId,
+        createdById: req.user.id
+      });
+      
+      const field = await storage.createCustomTextField(validatedData);
+      res.status(201).json(field);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: error.errors[0].message });
+      } else {
+        res.status(500).json({ message: "Internal server error" });
+      }
+    }
+  });
+  
+  app.patch("/api/custom-text-fields/:id", isAuthenticated, async (req, res) => {
+    const fieldId = parseInt(req.params.id);
+    try {
+      const field = await storage.getCustomTextField(fieldId);
+      
+      if (!field) {
+        return res.status(404).json({ message: "Custom text field not found" });
+      }
+      
+      // Check if user has access to the workspace
+      const workspace = await storage.getWorkspace(field.workspaceId);
+      if (!workspace) {
+        return res.status(404).json({ message: "Workspace not found" });
+      }
+      
+      const members = await storage.getWorkspaceMembers(workspace.id);
+      const userMembership = members.find(member => member.userId === req.user.id);
+      
+      if (!userMembership && req.user.role !== "admin") {
+        return res.status(403).json({ message: "You don't have access to this workspace" });
+      }
+      
+      const updatedField = await storage.updateCustomTextField(fieldId, req.body);
+      res.json(updatedField);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: error.errors[0].message });
+      } else {
+        res.status(500).json({ message: "Internal server error" });
+      }
+    }
+  });
+  
+  app.delete("/api/custom-text-fields/:id", isAuthenticated, async (req, res) => {
+    const fieldId = parseInt(req.params.id);
+    try {
+      const field = await storage.getCustomTextField(fieldId);
+      
+      if (!field) {
+        return res.status(404).json({ message: "Custom text field not found" });
+      }
+      
+      // Check if user has access to the workspace
+      const workspace = await storage.getWorkspace(field.workspaceId);
+      if (!workspace) {
+        return res.status(404).json({ message: "Workspace not found" });
+      }
+      
+      const members = await storage.getWorkspaceMembers(workspace.id);
+      const userMembership = members.find(member => member.userId === req.user.id);
+      
+      if (!userMembership && req.user.role !== "admin") {
+        return res.status(403).json({ message: "You don't have access to this workspace" });
+      }
+      
+      await storage.deleteCustomTextField(fieldId);
+      res.status(204).end();
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Cutting Plans
+  app.get("/api/workspaces/:workspaceId/cutting-plans", hasWorkspaceAccess, async (req, res) => {
+    const workspaceId = parseInt(req.params.workspaceId);
+    try {
+      const plans = await storage.getWorkspaceCuttingPlans(workspaceId);
+      res.json(plans);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  app.post("/api/workspaces/:workspaceId/cutting-plans", hasWorkspaceAccess, async (req, res) => {
+    const workspaceId = parseInt(req.params.workspaceId);
+    try {
+      const validatedData = insertCuttingPlanSchema.parse({
+        ...req.body,
+        workspaceId,
+        createdById: req.user.id
+      });
+      
+      const plan = await storage.createCuttingPlan(validatedData);
+      res.status(201).json(plan);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: error.errors[0].message });
+      } else {
+        res.status(500).json({ message: "Internal server error" });
+      }
+    }
+  });
+  
+  app.get("/api/cutting-plans/:id", isAuthenticated, async (req, res) => {
+    const planId = parseInt(req.params.id);
+    try {
+      const plan = await storage.getCuttingPlan(planId);
+      
+      if (!plan) {
+        return res.status(404).json({ message: "Cutting plan not found" });
+      }
+      
+      // Check if user has access to the workspace
+      const workspace = await storage.getWorkspace(plan.workspaceId);
+      if (!workspace) {
+        return res.status(404).json({ message: "Workspace not found" });
+      }
+      
+      const members = await storage.getWorkspaceMembers(workspace.id);
+      const userMembership = members.find(member => member.userId === req.user.id);
+      
+      if (!userMembership && req.user.role !== "admin") {
+        return res.status(403).json({ message: "You don't have access to this workspace" });
+      }
+      
+      res.json(plan);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  app.patch("/api/cutting-plans/:id", isAuthenticated, async (req, res) => {
+    const planId = parseInt(req.params.id);
+    try {
+      const plan = await storage.getCuttingPlan(planId);
+      
+      if (!plan) {
+        return res.status(404).json({ message: "Cutting plan not found" });
+      }
+      
+      // Check if user has access to the workspace
+      const workspace = await storage.getWorkspace(plan.workspaceId);
+      if (!workspace) {
+        return res.status(404).json({ message: "Workspace not found" });
+      }
+      
+      const members = await storage.getWorkspaceMembers(workspace.id);
+      const userMembership = members.find(member => member.userId === req.user.id);
+      
+      if (!userMembership && req.user.role !== "admin") {
+        return res.status(403).json({ message: "You don't have access to this workspace" });
+      }
+      
+      const updatedPlan = await storage.updateCuttingPlan(planId, req.body);
+      res.json(updatedPlan);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: error.errors[0].message });
+      } else {
+        res.status(500).json({ message: "Internal server error" });
+      }
+    }
+  });
+  
+  app.delete("/api/cutting-plans/:id", isAuthenticated, async (req, res) => {
+    const planId = parseInt(req.params.id);
+    try {
+      const plan = await storage.getCuttingPlan(planId);
+      
+      if (!plan) {
+        return res.status(404).json({ message: "Cutting plan not found" });
+      }
+      
+      // Check if user has access to the workspace
+      const workspace = await storage.getWorkspace(plan.workspaceId);
+      if (!workspace) {
+        return res.status(404).json({ message: "Workspace not found" });
+      }
+      
+      const members = await storage.getWorkspaceMembers(workspace.id);
+      const userMembership = members.find(member => member.userId === req.user.id);
+      
+      if (!userMembership && req.user.role !== "admin") {
+        return res.status(403).json({ message: "You don't have access to this workspace" });
+      }
+      
+      await storage.deleteCuttingPlan(planId);
+      res.status(204).end();
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // User Settings
+  app.get("/api/user/settings", isAuthenticated, async (req, res) => {
+    try {
+      const settings = await storage.getUserSettings(req.user.id);
+      res.json(settings);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  app.post("/api/user/settings", isAuthenticated, async (req, res) => {
+    try {
+      const validatedData = insertUserSettingsSchema.parse({
+        ...req.body,
+        userId: req.user.id
+      });
+      
+      const settings = await storage.createOrUpdateUserSettings(validatedData);
+      res.status(201).json(settings);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: error.errors[0].message });
+      } else {
+        res.status(500).json({ message: "Internal server error" });
+      }
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
