@@ -511,13 +511,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/create-subscription', isAuthenticated, async (req, res) => {
     try {
       const user = req.user;
-      const { planId } = req.body;
+      const { planId, paymentMethod } = req.body;
       
-      // Create or update subscription with basic info (payment will be processed separately)
+      // Create or update subscription with basic info
       const subscriptionData = {
         userId: user.id,
         planId: planId || 'pro', // Default to pro plan if none specified
-        status: 'pending', // Will be updated to 'active' after payment
+        status: 'active', // Now we're auto-activating the subscription with the custom payment form
+        paymentMethod: paymentMethod || 'credit-card', // Track which payment method was used
         currentPeriodStart: new Date(),
         currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
       };
@@ -534,13 +535,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         subscription = await storage.createSubscription(subscriptionData);
       }
       
+      // In a real implementation, here we would:
+      // 1. Create customer in payment processor if they don't exist
+      // 2. Create payment method with tokenized card data
+      // 3. Attach payment method to customer
+      // 4. Create subscription or one-time charge
+      
+      // For PayPal specifically, we would:
+      // 1. Create a PayPal order
+      // 2. Return the approval URL for redirect
+      
+      // Log the subscription creation
+      console.log(`Subscription created/updated for user ${user.id}: Plan ${planId} via ${paymentMethod}`);
+      
       // Return the subscription data for the frontend
-      res.json({
-        subscriptionId: subscription.id,
-        planId: subscription.planId,
-        amount: planId === 'basic' ? 9.99 : 29.99 // Set the price based on the plan
+      res.status(200).json({
+        success: true,
+        subscription: {
+          id: subscription.id,
+          planId: subscription.planId,
+          status: subscription.status,
+          paymentMethod: subscription.paymentMethod,
+          currentPeriodEnd: subscription.currentPeriodEnd
+        }
       });
     } catch (error: any) {
+      console.error('Subscription creation error:', error);
       res.status(500).json({ message: `Error creating subscription: ${error.message}` });
     }
   });

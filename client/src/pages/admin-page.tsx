@@ -353,6 +353,48 @@ export default function AdminPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center">
+                      <CreditCard className="h-5 w-5 mr-2 text-primary" />
+                      Payment Settings
+                    </CardTitle>
+                    <CardDescription>Configure payment methods and processing options</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 items-center gap-4">
+                        <Label htmlFor="enable-credit-card">Credit Card Payments</Label>
+                        <Switch id="enable-credit-card" defaultChecked />
+                      </div>
+                      <div className="grid grid-cols-2 items-center gap-4">
+                        <Label htmlFor="enable-paypal">PayPal Payments</Label>
+                        <Switch id="enable-paypal" defaultChecked />
+                      </div>
+                      <div className="grid grid-cols-2 items-center gap-4">
+                        <Label htmlFor="enable-stripe">Stripe Integration</Label>
+                        <Switch id="enable-stripe" />
+                      </div>
+                      <div className="pt-4 border-t mt-4">
+                        <Label htmlFor="default-payment-method" className="block mb-2">Default Payment Method</Label>
+                        <Select defaultValue="credit-card">
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select default payment method" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="credit-card">Credit Card</SelectItem>
+                            <SelectItem value="paypal">PayPal</SelectItem>
+                            <SelectItem value="stripe">Stripe</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </CardContent>
+                  <CardFooter>
+                    <Button className="w-full">Save Payment Settings</Button>
+                  </CardFooter>
+                </Card>
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
                       <Database className="h-5 w-5 mr-2 text-primary" />
                       Database Management
                     </CardTitle>

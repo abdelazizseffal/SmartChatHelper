@@ -1,41 +1,14 @@
 import { useState } from "react";
-import { 
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle 
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
-import { Loader2, CreditCard } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
-
-const PaypalIcon = (props: any) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    {...props}
-  >
-    <path d="M7.144 19.532l1.049-5.751A4.228 4.228 0 0112.292 10h3.725a5.738 5.738 0 004.802-2.27l-1.51 8.26a4.228 4.228 0 01-3.6 3.472L7.144 19.532z" />
-    <path d="M3.42 19.532l1.048-5.751A4.228 4.228 0 018.56 10h3.7a5.738 5.738 0 004.806-2.27L15.536 16c-.186 1.02-.98 1.85-2.006 2.105l-8.11.21c-.56.015-1.012.466-1.033 1.028-.022.562.406 1.036.967 1.07l.067.003z" />
-  </svg>
-);
+import { useToast } from "@/hooks/use-toast";
+import { CheckCircle2, CreditCard, Loader2, X } from "lucide-react";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SiPaypal } from "react-icons/si";
+import { useAuth } from "@/hooks/use-auth";
 
 interface PaymentFormProps {
   planId: string;
@@ -45,197 +18,230 @@ interface PaymentFormProps {
 }
 
 export function CustomPaymentForm({ planId, amount, onSuccess, onCancel }: PaymentFormProps) {
-  const [paymentMethod, setPaymentMethod] = useState<string>("credit-card");
-  const [cardNumber, setCardNumber] = useState<string>("");
-  const [cardHolderName, setCardHolderName] = useState<string>("");
-  const [expiryDate, setExpiryDate] = useState<string>("");
-  const [cvv, setCvv] = useState<string>("");
-  const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const [paymentMethod, setPaymentMethod] = useState<string>("credit-card");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardName, setCardName] = useState("");
+  const [expiryDate, setExpiryDate] = useState("");
+  const [cvv, setCvv] = useState("");
+  const [paypalEmail, setPaypalEmail] = useState("");
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  // Format card number with spaces
+  const formatCardNumber = (value: string) => {
+    const v = value.replace(/\s+/g, "").replace(/[^0-9]/gi, "");
+    const matches = v.match(/\d{4,16}/g);
+    const match = (matches && matches[0]) || "";
+    const parts = [];
+
+    for (let i = 0, len = match.length; i < len; i += 4) {
+      parts.push(match.substring(i, i + 4));
+    }
+
+    if (parts.length) {
+      return parts.join(" ");
+    } else {
+      return value;
+    }
+  };
+
+  // Format expiry date MM/YY
+  const formatExpiryDate = (value: string) => {
+    const v = value.replace(/\s+/g, "").replace(/[^0-9]/gi, "");
+    if (v.length > 2) {
+      return `${v.substring(0, 2)}/${v.substring(2, 4)}`;
+    }
+    return v;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsProcessing(true);
 
     try {
-      // Perform basic validation
-      if (paymentMethod === "credit-card") {
-        if (!cardNumber || !cardHolderName || !expiryDate || !cvv) {
-          throw new Error("Please fill in all required fields");
-        }
-        
-        if (cardNumber.length < 15) {
-          throw new Error("Please enter a valid card number");
-        }
-        
-        if (cvv.length < 3) {
-          throw new Error("Please enter a valid CVV");
-        }
-      }
+      // In a real implementation, this would securely send payment info to your payment processor
+      // For this prototype, we're simulating the payment process
+      
+      const subscriptionData = {
+        userId: user?.id,
+        planId: planId,
+        paymentMethod: paymentMethod,
+        // Include payment details in a real implementation
+      };
 
-      // Process the payment through our backend
-      const response = await apiRequest("POST", "/api/process-payment", {
-        paymentMethod,
-        planId,
-        amount,
-        cardDetails: paymentMethod === "credit-card" ? {
-          cardNumber,
-          cardHolderName,
-          expiryDate,
-          cvv
-        } : undefined
-      });
-
+      // Process payment with backend
+      const response = await apiRequest("POST", "/api/create-subscription", subscriptionData);
+      
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Payment processing failed");
+        throw new Error(errorData.message || "Payment failed");
       }
 
-      // Payment successful
-      toast({
-        title: "Payment Successful",
-        description: "Your subscription has been processed successfully",
-        variant: "default",
-      });
+      // Show success message
+      setIsSuccess(true);
       
-      onSuccess();
+      // Notify parent component of success
+      setTimeout(() => {
+        onSuccess();
+      }, 2000);
+
     } catch (error: any) {
       toast({
         title: "Payment Failed",
-        description: error.message || "An error occurred while processing your payment",
+        description: error.message || "There was a problem processing your payment",
         variant: "destructive",
       });
-    } finally {
       setIsProcessing(false);
     }
   };
 
+  // If payment was successful
+  if (isSuccess) {
+    return (
+      <Card className="w-full max-w-md mx-auto">
+        <CardContent className="pt-6 text-center">
+          <div className="mb-4 flex justify-center">
+            <CheckCircle2 className="h-12 w-12 text-green-500" />
+          </div>
+          <h2 className="text-xl font-semibold mb-2">Payment Successful!</h2>
+          <p className="text-muted-foreground mb-4">
+            Your {planId === "basic" ? "Basic" : "Pro"} plan subscription has been activated.
+          </p>
+          <Button className="w-full" onClick={onSuccess}>
+            Continue
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <Card>
+    <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle>Complete Your Payment</CardTitle>
-        <CardDescription>
-          Enter your payment details to subscribe to the selected plan
-        </CardDescription>
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle>Complete Payment</CardTitle>
+            <CardDescription>
+              {planId === "basic" ? "Basic" : "Pro"} Plan - ${amount}/month
+            </CardDescription>
+          </div>
+          <Button variant="ghost" size="icon" onClick={onCancel}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-4">
-            <div>
-              <Label>Payment Method</Label>
-              <Select 
-                value={paymentMethod} 
-                onValueChange={setPaymentMethod}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select payment method" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="credit-card">
-                    <div className="flex items-center">
-                      <CreditCard className="h-4 w-4 mr-2" />
-                      <span>Credit/Debit Card</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="paypal">
-                    <div className="flex items-center">
-                      <PaypalIcon className="h-4 w-4 mr-2" />
-                      <span>PayPal</span>
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+        <Tabs defaultValue="credit-card" onValueChange={setPaymentMethod}>
+          <TabsList className="grid grid-cols-2 mb-4">
+            <TabsTrigger value="credit-card" className="flex items-center">
+              <CreditCard className="mr-2 h-4 w-4" />
+              Credit Card
+            </TabsTrigger>
+            <TabsTrigger value="paypal" className="flex items-center">
+              <SiPaypal className="mr-2 h-4 w-4 text-[#003087]" />
+              PayPal
+            </TabsTrigger>
+          </TabsList>
 
-            {paymentMethod === "credit-card" && (
-              <>
-                <div>
-                  <Label htmlFor="cardNumber">Card Number</Label>
-                  <Input
-                    id="cardNumber"
-                    placeholder="1234 5678 9012 3456"
-                    value={cardNumber}
-                    onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, ''))}
-                    maxLength={16}
+          <TabsContent value="credit-card">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="cardName">Cardholder Name</Label>
+                <Input 
+                  id="cardName" 
+                  placeholder="John Smith" 
+                  value={cardName} 
+                  onChange={e => setCardName(e.target.value)}
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="cardNumber">Card Number</Label>
+                <Input 
+                  id="cardNumber" 
+                  placeholder="1234 5678 9012 3456" 
+                  value={cardNumber}
+                  onChange={e => setCardNumber(formatCardNumber(e.target.value))}
+                  maxLength={19}
+                  required 
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="expiryDate">Expiry Date</Label>
+                  <Input 
+                    id="expiryDate" 
+                    placeholder="MM/YY" 
+                    value={expiryDate}
+                    onChange={e => setExpiryDate(formatExpiryDate(e.target.value))}
+                    maxLength={5}
+                    required 
                   />
                 </div>
-                <div>
-                  <Label htmlFor="cardHolderName">Card Holder Name</Label>
-                  <Input
-                    id="cardHolderName"
-                    placeholder="John Doe"
-                    value={cardHolderName}
-                    onChange={(e) => setCardHolderName(e.target.value)}
+                <div className="space-y-2">
+                  <Label htmlFor="cvv">CVV</Label>
+                  <Input 
+                    id="cvv" 
+                    placeholder="123" 
+                    value={cvv}
+                    onChange={e => setCvv(e.target.value.replace(/\D/g, ""))}
+                    maxLength={4}
+                    required 
                   />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="expiryDate">Expiry Date</Label>
-                    <Input
-                      id="expiryDate"
-                      placeholder="MM/YY"
-                      value={expiryDate}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/\D/g, '');
-                        if (value.length <= 4) {
-                          const month = value.slice(0, 2);
-                          const year = value.slice(2);
-                          setExpiryDate(
-                            value.length > 2 ? `${month}/${year}` : month
-                          );
-                        }
-                      }}
-                      maxLength={5}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="cvv">CVV</Label>
-                    <Input
-                      id="cvv"
-                      placeholder="123"
-                      value={cvv}
-                      onChange={(e) => setCvv(e.target.value.replace(/\D/g, ''))}
-                      maxLength={4}
-                    />
-                  </div>
-                </div>
-              </>
-            )}
-
-            {paymentMethod === "paypal" && (
-              <div className="flex items-center justify-center p-6 bg-neutral-50 dark:bg-neutral-800 rounded-md">
-                <div className="text-center">
-                  <PaypalIcon className="h-12 w-12 mx-auto mb-4 text-blue-600" />
-                  <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                    You will be redirected to PayPal to complete your payment after clicking the button below.
-                  </p>
                 </div>
               </div>
-            )}
-          </div>
+            </form>
+          </TabsContent>
 
-          <div className="pt-4 flex items-center justify-between">
-            <p className="font-medium">
-              Total: ${(amount).toFixed(2)}
-            </p>
-            <div className="flex space-x-2">
-              <Button variant="outline" type="button" onClick={onCancel}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isProcessing}>
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  "Complete Payment"
-                )}
-              </Button>
+          <TabsContent value="paypal">
+            <div className="space-y-4">
+              <div className="rounded-md bg-blue-50 p-4 flex items-center">
+                <SiPaypal className="h-8 w-8 text-[#003087] mr-3" />
+                <div>
+                  <h3 className="font-medium text-[#003087]">Pay with PayPal</h3>
+                  <p className="text-sm text-[#3b5998]">Safe and secure payments with PayPal</p>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="paypalEmail">PayPal Email</Label>
+                <Input 
+                  id="paypalEmail" 
+                  type="email" 
+                  placeholder="your-email@example.com" 
+                  value={paypalEmail}
+                  onChange={e => setPaypalEmail(e.target.value)}
+                  required 
+                />
+              </div>
+              
+              <p className="text-sm text-muted-foreground">
+                You will be redirected to PayPal to complete your payment securely.
+              </p>
             </div>
-          </div>
-        </form>
+          </TabsContent>
+        </Tabs>
       </CardContent>
+      <CardFooter>
+        <Button 
+          className="w-full" 
+          onClick={handleSubmit}
+          disabled={isProcessing}
+        >
+          {isProcessing ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+              Processing...
+            </>
+          ) : (
+            `Pay $${amount}`
+          )}
+        </Button>
+      </CardFooter>
     </Card>
   );
 }
