@@ -353,119 +353,330 @@ export default function AdminPage() {
           
           {user?.role === 'super_admin' && (
             <TabsContent value="system">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <Shield className="h-5 w-5 mr-2 text-destructive" />
-                      Super Admin Controls
-                    </CardTitle>
-                    <CardDescription>Manage system-wide settings and permissions</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 items-center gap-4">
-                        <Label htmlFor="maintenance-mode">Maintenance Mode</Label>
-                        <Switch id="maintenance-mode" />
+              <div className="flex flex-col md:flex-row gap-6">
+                {/* Super Admin Sidebar */}
+                <div className="w-full md:w-64 flex-shrink-0">
+                  <Card className="sticky top-6">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg">Super Admin</CardTitle>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="md:hidden"
+                          onClick={() => setSidebarOpen(!sidebarOpen)}
+                        >
+                          {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                        </Button>
                       </div>
-                      <div className="grid grid-cols-2 items-center gap-4">
-                        <Label htmlFor="user-registration">User Registration</Label>
-                        <Switch id="user-registration" defaultChecked />
-                      </div>
-                      <div className="grid grid-cols-2 items-center gap-4">
-                        <Label htmlFor="system-debug">Debug Logging</Label>
-                        <Switch id="system-debug" />
-                      </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    <Button className="w-full">Save System Settings</Button>
-                  </CardFooter>
-                </Card>
+                    </CardHeader>
+                    
+                    <CardContent className={cn("flex flex-col space-y-1", sidebarOpen ? "block" : "hidden md:block")}>
+                      <SidebarItem
+                        icon={<Shield className="h-4 w-4 mr-2" />}
+                        title="Dashboard"
+                        active={activeSuperAdminSection === "dashboard"}
+                        onClick={() => setActiveSuperAdminSection("dashboard")}
+                      />
+                      <SidebarItem
+                        icon={<CreditCard className="h-4 w-4 mr-2" />}
+                        title="Subscription Plans"
+                        active={activeSuperAdminSection === "subscription-plans"}
+                        onClick={() => setActiveSuperAdminSection("subscription-plans")}
+                      />
+                      <SidebarItem
+                        icon={<Boxes className="h-4 w-4 mr-2" />}
+                        title="Material Groups"
+                        active={activeSuperAdminSection === "material-groups"}
+                        onClick={() => setActiveSuperAdminSection("material-groups")}
+                      />
+                      <SidebarItem
+                        icon={<Package className="h-4 w-4 mr-2" />}
+                        title="Material Warehouse"
+                        active={activeSuperAdminSection === "material-warehouse"}
+                        onClick={() => setActiveSuperAdminSection("material-warehouse")}
+                      />
+                      <SidebarItem
+                        icon={<Tag className="h-4 w-4 mr-2" />}
+                        title="Custom Text Fields"
+                        active={activeSuperAdminSection === "custom-text-fields"}
+                        onClick={() => setActiveSuperAdminSection("custom-text-fields")}
+                      />
+                      <SidebarItem
+                        icon={<FileText className="h-4 w-4 mr-2" />}
+                        title="Cutting Plans"
+                        active={activeSuperAdminSection === "cutting-plans"}
+                        onClick={() => setActiveSuperAdminSection("cutting-plans")}
+                      />
+                      <SidebarItem
+                        icon={<Settings className="h-4 w-4 mr-2" />}
+                        title="System Settings"
+                        active={activeSuperAdminSection === "system-settings"}
+                        onClick={() => setActiveSuperAdminSection("system-settings")}
+                      />
+                      <SidebarItem
+                        icon={<Database className="h-4 w-4 mr-2" />}
+                        title="Database & Storage"
+                        active={activeSuperAdminSection === "database"}
+                        onClick={() => setActiveSuperAdminSection("database")}
+                      />
+                    </CardContent>
+                  </Card>
+                </div>
                 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <CreditCard className="h-5 w-5 mr-2 text-primary" />
-                      Payment Settings
-                    </CardTitle>
-                    <CardDescription>Configure payment methods and processing options</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 items-center gap-4">
-                        <Label htmlFor="enable-credit-card">Credit Card Payments</Label>
-                        <Switch id="enable-credit-card" defaultChecked />
-                      </div>
-                      <div className="grid grid-cols-2 items-center gap-4">
-                        <Label htmlFor="enable-paypal">PayPal Payments</Label>
-                        <Switch id="enable-paypal" defaultChecked />
-                      </div>
-                      <div className="grid grid-cols-2 items-center gap-4">
-                        <Label htmlFor="enable-stripe">Stripe Integration</Label>
-                        <Switch id="enable-stripe" />
-                      </div>
-                      <div className="pt-4 border-t mt-4">
-                        <Label htmlFor="default-payment-method" className="block mb-2">Default Payment Method</Label>
-                        <Select defaultValue="credit-card">
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select default payment method" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="credit-card">Credit Card</SelectItem>
-                            <SelectItem value="paypal">PayPal</SelectItem>
-                            <SelectItem value="stripe">Stripe</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    <Button className="w-full">Save Payment Settings</Button>
-                  </CardFooter>
-                </Card>
-                
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <Database className="h-5 w-5 mr-2 text-primary" />
-                      Database Management
-                    </CardTitle>
-                    <CardDescription>View and manage database information</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {isLoadingSystemStats ? (
-                      <div className="flex justify-center p-4">
-                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <p className="text-sm font-medium text-muted-foreground">Total Projects</p>
-                            <p className="text-2xl font-bold">{systemStats?.projectCount || 0}</p>
+                {/* Content Area */}
+                <div className="flex-1">
+                  {/* Dashboard */}
+                  {activeSuperAdminSection === "dashboard" && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <Shield className="h-5 w-5 mr-2 text-destructive" />
+                          Super Admin Dashboard
+                        </CardTitle>
+                        <CardDescription>Overview of system status and key metrics</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {isLoadingSystemStats ? (
+                          <div className="flex justify-center p-4">
+                            <Loader2 className="h-6 w-6 animate-spin text-primary" />
                           </div>
-                          <div>
-                            <p className="text-sm font-medium text-muted-foreground">Total Optimizations</p>
-                            <p className="text-2xl font-bold">{systemStats?.optimizationCount || 0}</p>
+                        ) : (
+                          <div className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              <div className="border rounded-lg p-4">
+                                <div className="text-sm font-medium text-muted-foreground mb-2">System Status</div>
+                                <div className="flex items-center">
+                                  <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                                  <span className="text-sm font-medium">Operational</span>
+                                </div>
+                              </div>
+                              <div className="border rounded-lg p-4">
+                                <div className="text-sm font-medium text-muted-foreground mb-2">Total Projects</div>
+                                <div className="text-2xl font-bold">{systemStats?.projectCount || 0}</div>
+                              </div>
+                              <div className="border rounded-lg p-4">
+                                <div className="text-sm font-medium text-muted-foreground mb-2">Total Optimizations</div>
+                                <div className="text-2xl font-bold">{systemStats?.optimizationCount || 0}</div>
+                              </div>
+                            </div>
+                            
+                            <div className="rounded-md bg-muted p-4">
+                              <h4 className="mb-2 text-sm font-medium">Database Health</h4>
+                              <div className="text-xs text-muted-foreground">
+                                <p>Connection: <span className="text-green-500 font-semibold">Connected</span></p>
+                                <p>Type: PostgreSQL</p>
+                                <p>Status: Active</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+                  
+                  {/* Subscription Plans */}
+                  {activeSuperAdminSection === "subscription-plans" && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <CreditCard className="h-5 w-5 mr-2 text-primary" />
+                          Subscription Plan Management
+                        </CardTitle>
+                        <CardDescription>Create and manage subscription plans</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <SubscriptionPlanManagement />
+                      </CardContent>
+                    </Card>
+                  )}
+                  
+                  {/* System Settings */}
+                  {activeSuperAdminSection === "system-settings" && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <Settings className="h-5 w-5 mr-2 text-primary" />
+                          System Settings
+                        </CardTitle>
+                        <CardDescription>Manage system-wide settings and permissions</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-2 items-center gap-4">
+                            <Label htmlFor="maintenance-mode">Maintenance Mode</Label>
+                            <Switch id="maintenance-mode" />
+                          </div>
+                          <div className="grid grid-cols-2 items-center gap-4">
+                            <Label htmlFor="user-registration">User Registration</Label>
+                            <Switch id="user-registration" defaultChecked />
+                          </div>
+                          <div className="grid grid-cols-2 items-center gap-4">
+                            <Label htmlFor="system-debug">Debug Logging</Label>
+                            <Switch id="system-debug" />
+                          </div>
+                          <div className="grid grid-cols-2 items-center gap-4">
+                            <Label htmlFor="enable-credit-card">Credit Card Payments</Label>
+                            <Switch id="enable-credit-card" defaultChecked />
+                          </div>
+                          <div className="grid grid-cols-2 items-center gap-4">
+                            <Label htmlFor="enable-paypal">PayPal Payments</Label>
+                            <Switch id="enable-paypal" defaultChecked />
+                          </div>
+                          <div className="grid grid-cols-2 items-center gap-4">
+                            <Label htmlFor="enable-stripe">Stripe Integration</Label>
+                            <Switch id="enable-stripe" />
+                          </div>
+                          <div className="pt-4 border-t mt-4">
+                            <Label htmlFor="default-payment-method" className="block mb-2">Default Payment Method</Label>
+                            <Select defaultValue="credit-card">
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select default payment method" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="credit-card">Credit Card</SelectItem>
+                                <SelectItem value="paypal">PayPal</SelectItem>
+                                <SelectItem value="stripe">Stripe</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
                         </div>
-                        <div className="rounded-md bg-muted p-4">
-                          <h4 className="mb-2 text-sm font-medium">Database Health</h4>
-                          <div className="text-xs text-muted-foreground">
-                            <p>Connection: <span className="text-green-500 font-semibold">Connected</span></p>
-                            <p>Type: PostgreSQL</p>
-                            <p>Status: Active</p>
+                      </CardContent>
+                      <CardFooter>
+                        <Button className="w-full">Save System Settings</Button>
+                      </CardFooter>
+                    </Card>
+                  )}
+                  
+                  {/* Database & Storage */}
+                  {activeSuperAdminSection === "database" && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <Database className="h-5 w-5 mr-2 text-primary" />
+                          Database Management
+                        </CardTitle>
+                        <CardDescription>View and manage database information</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {isLoadingSystemStats ? (
+                          <div className="flex justify-center p-4">
+                            <Loader2 className="h-6 w-6 animate-spin text-primary" />
                           </div>
+                        ) : (
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <p className="text-sm font-medium text-muted-foreground">Total Projects</p>
+                                <p className="text-2xl font-bold">{systemStats?.projectCount || 0}</p>
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-muted-foreground">Total Optimizations</p>
+                                <p className="text-2xl font-bold">{systemStats?.optimizationCount || 0}</p>
+                              </div>
+                            </div>
+                            <div className="rounded-md bg-muted p-4">
+                              <h4 className="mb-2 text-sm font-medium">Database Health</h4>
+                              <div className="text-xs text-muted-foreground">
+                                <p>Connection: <span className="text-green-500 font-semibold">Connected</span></p>
+                                <p>Type: PostgreSQL</p>
+                                <p>Status: Active</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                      <CardFooter className="flex justify-between">
+                        <Button variant="outline">Backup Database</Button>
+                        <Button variant="secondary">Optimize Tables</Button>
+                      </CardFooter>
+                    </Card>
+                  )}
+                  
+                  {/* Material Groups */}
+                  {activeSuperAdminSection === "material-groups" && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <Boxes className="h-5 w-5 mr-2 text-blue-500" />
+                          Material Groups
+                        </CardTitle>
+                        <CardDescription>Manage material groups across the system</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-center py-8">
+                          <p className="text-muted-foreground mb-4">
+                            Material Group management coming soon
+                          </p>
+                          <Button variant="outline">Create New Material Group</Button>
                         </div>
-                      </div>
-                    )}
-                  </CardContent>
-                  <CardFooter className="flex justify-between">
-                    <Button variant="outline">Backup Database</Button>
-                    <Button variant="secondary">Optimize Tables</Button>
-                  </CardFooter>
-                </Card>
+                      </CardContent>
+                    </Card>
+                  )}
+                  
+                  {/* Material Warehouse */}
+                  {activeSuperAdminSection === "material-warehouse" && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <Package className="h-5 w-5 mr-2 text-amber-500" />
+                          Material Warehouse
+                        </CardTitle>
+                        <CardDescription>Manage materials in the warehouse</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-center py-8">
+                          <p className="text-muted-foreground mb-4">
+                            Material Warehouse management coming soon
+                          </p>
+                          <Button variant="outline">Add New Material</Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                  
+                  {/* Custom Text Fields */}
+                  {activeSuperAdminSection === "custom-text-fields" && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <Tag className="h-5 w-5 mr-2 text-purple-500" />
+                          Custom Text Fields
+                        </CardTitle>
+                        <CardDescription>Manage custom text fields for plans</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-center py-8">
+                          <p className="text-muted-foreground mb-4">
+                            Custom Text Fields management coming soon
+                          </p>
+                          <Button variant="outline">Add New Field</Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                  
+                  {/* Cutting Plans */}
+                  {activeSuperAdminSection === "cutting-plans" && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <FileText className="h-5 w-5 mr-2 text-green-500" />
+                          Cutting Plans
+                        </CardTitle>
+                        <CardDescription>Manage cutting plans across the system</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-center py-8">
+                          <p className="text-muted-foreground mb-4">
+                            Cutting Plans management coming soon
+                          </p>
+                          <Button variant="outline">Create New Cutting Plan</Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
               </div>
             </TabsContent>
           )}
